@@ -10,6 +10,8 @@ class ContentViewController: NSViewController {
     private var pageInfoLabel: NSTextField!
     private var prevButton: NSButton!
     private var nextButton: NSButton!
+    private var addRowButton: NSButton!
+    private var deleteRowButton: NSButton!
 
     private var currentTable: TableInfo?
     private var currentConnection: DatabaseConnection?
@@ -65,6 +67,20 @@ class ContentViewController: NSViewController {
         pageInfoLabel = NSTextField(labelWithString: "No data")
         pageInfoLabel.alignment = .center
 
+        let spacer = NSView()
+        spacer.translatesAutoresizingMaskIntoConstraints = false
+
+        addRowButton = NSButton(title: "+", target: self, action: #selector(addRow))
+        addRowButton.isEnabled = false
+        addRowButton.bezelStyle = .rounded
+
+        deleteRowButton = NSButton(title: "-", target: self, action: #selector(deleteRow))
+        deleteRowButton.isEnabled = false
+        deleteRowButton.bezelStyle = .rounded
+
+        toolbarStack.addArrangedSubview(addRowButton)
+        toolbarStack.addArrangedSubview(deleteRowButton)
+        toolbarStack.addArrangedSubview(spacer)
         toolbarStack.addArrangedSubview(prevButton)
         toolbarStack.addArrangedSubview(pageInfoLabel)
         toolbarStack.addArrangedSubview(nextButton)
@@ -128,6 +144,8 @@ class ContentViewController: NSViewController {
     private func checkEditability(tableInfo: TableInfo) {
         guard let connection = DatabaseManager.shared.connections.first(where: { $0.isConnected() }) else {
             canEdit = false
+            addRowButton?.isEnabled = false
+            deleteRowButton?.isEnabled = false
             return
         }
 
@@ -136,9 +154,13 @@ class ContentViewController: NSViewController {
             if canEdit {
                 primaryKeyColumns = try connection.getPrimaryKeyColumns(for: tableInfo.name)
             }
+            addRowButton?.isEnabled = canEdit
+            deleteRowButton?.isEnabled = canEdit
         } catch {
             canEdit = false
             primaryKeyColumns = []
+            addRowButton?.isEnabled = false
+            deleteRowButton?.isEnabled = false
         }
     }
 
@@ -272,6 +294,82 @@ class ContentViewController: NSViewController {
         if let table = currentTable {
             loadTableData(tableInfo: table)
         }
+    }
+
+    @objc private func addRow() {
+        guard let connection = currentConnection,
+              let tableInfo = currentTable else { return }
+
+        let insertSQL = "INSERT INTO \(tableInfo.name) DEFAULT VALUES"
+
+        do {
+            try connection.executeUpdate(insertSQL)
+            refresh()
+        } catch {
+            showError(message: error.localizedDescription)
+        }
+    }
+
+    @objc private func deleteRow() {
+        guard currentConnection != nil,
+              currentTable != nil else { return }
+
+        let selectedRows = tableView.selectedRowIndexes
+        if selectedRows.isEmpty {
+            return
+        }
+
+        // Show confirmation dialog
+        let alert = NSAlert()
+        alert.messageText = "Delete \(selectedRows.count) row(s)?"
+        alert.informativeText = "This action cannot be undone."
+        alert.alertStyle = .warning
+        alert.addButton(withTitle: "Delete")
+        alert.addButton(withTitle: "Cancel")
+
+        alert.beginSheetModal(for: view.window!) { response in
+            if response == .alertFirstButtonReturn {
+                self.performDelete(rows: selectedRows)
+            }
+        }
+    }
+
+    private func performDelete(rows: IndexSet) {
+        guard let connection = currentConnection,
+              let tableInfo = currentTable else { return }
+
+        for row in rows {
+            guard row < rowIdentifiers.count else { continue }
+
+            var whereClause = ""
+            if primaryKeyColumns.isEmpty {
+                if let rowid = rowIdentifiers[row]["rowid"] {
+                    whereClause = "rowid = \(rowid)"
+                }
+            } else {
+                var conditions: [String] = []
+                for (col, val) in rowIdentifiers[row] {
+                    if let strVal = val as? String {
+                        let escaped = strVal.replacingOccurrences(of: "'", with: "''")
+                        conditions.append("\(col) = '\(escaped)'")
+                    } else {
+                        conditions.append("\(col) = \(val)")
+                    }
+                }
+                whereClause = conditions.joined(separator: " AND ")
+            }
+
+            let sql = "DELETE FROM \(tableInfo.name) WHERE \(whereClause)"
+
+            do {
+                try connection.executeUpdate(sql)
+            } catch {
+                showError(message: error.localizedDescription)
+                return
+            }
+        }
+
+        refresh()
     }
 
     private func saveEdit(row: Int, column: Int, newValue: Any?) {
