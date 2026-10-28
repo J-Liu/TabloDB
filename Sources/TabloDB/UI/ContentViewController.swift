@@ -22,6 +22,8 @@ class ContentViewController: NSViewController {
     private var canEdit: Bool = false
     private var primaryKeyColumns: [String] = []
     private var rowIdentifiers: [[String: Any]] = []
+    private var sortColumn: String?
+    private var sortAscending: Bool = true
 
     override func loadView() {
         view = NSView()
@@ -190,10 +192,17 @@ class ContentViewController: NSViewController {
 
             // Build query with rowid if available
             var sql: String
-            if primaryKeyColumns.isEmpty {
-                sql = "SELECT rowid, * FROM \(tableInfo.name) LIMIT \(pageSize) OFFSET \(currentOffset)"
+            let orderClause: String
+            if let sortCol = sortColumn {
+                orderClause = " ORDER BY \(sortCol) \(sortAscending ? "ASC" : "DESC")"
             } else {
-                sql = "SELECT * FROM \(tableInfo.name) LIMIT \(pageSize) OFFSET \(currentOffset)"
+                orderClause = ""
+            }
+
+            if primaryKeyColumns.isEmpty {
+                sql = "SELECT rowid, * FROM \(tableInfo.name)\(orderClause) LIMIT \(pageSize) OFFSET \(currentOffset)"
+            } else {
+                sql = "SELECT * FROM \(tableInfo.name)\(orderClause) LIMIT \(pageSize) OFFSET \(currentOffset)"
             }
 
             if let result = try? connection.executeQuery(sql) {
@@ -488,6 +497,27 @@ extension ContentViewController: NSTableViewDelegate {
 
     func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
         return 24
+    }
+
+    func tableView(_ tableView: NSTableView, didClick tableColumn: NSTableColumn) {
+        guard let result = queryResult else { return }
+
+        let columnIndex = Int(tableColumn.identifier.rawValue.dropFirst(4)) ?? 0
+        guard columnIndex < result.columns.count else { return }
+
+        let columnName = result.columns[columnIndex]
+
+        if sortColumn == columnName {
+            sortAscending.toggle()
+        } else {
+            sortColumn = columnName
+            sortAscending = true
+        }
+
+        currentOffset = 0
+        if let table = currentTable {
+            loadTableData(tableInfo: table)
+        }
     }
 }
 
