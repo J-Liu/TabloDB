@@ -75,6 +75,15 @@ class MenuController {
         openItem.target = self
         fileMenu.addItem(openItem)
 
+        let openCSVItem = NSMenuItem(title: L("menu.openCSV"), action: #selector(openCSVFile), keyEquivalent: "o")
+        openCSVItem.target = self
+        openCSVItem.keyEquivalentModifierMask = [.command, .option]
+        fileMenu.addItem(openCSVItem)
+
+        let openCSVDirItem = NSMenuItem(title: L("menu.openCSVDir"), action: #selector(openCSVDirectory), keyEquivalent: "")
+        openCSVDirItem.target = self
+        fileMenu.addItem(openCSVDirItem)
+
         let closeItem = NSMenuItem(title: L("menu.close"), action: #selector(closeDatabase), keyEquivalent: "w")
         closeItem.target = self
         fileMenu.addItem(closeItem)
@@ -158,9 +167,10 @@ class MenuController {
             recentMenu.addItem(NSMenuItem(title: L("menu.recent.none"), action: nil, keyEquivalent: ""))
         } else {
             for (path, type) in recent {
-                let item = NSMenuItem(title: "\(URL(fileURLWithPath: path).lastPathComponent) (\(type == .sqlite ? "SQLite" : "DuckDB"))", action: #selector(openRecentDatabase(_:)), keyEquivalent: "")
+                let typeLabel = type == .sqlite ? "SQLite" : type == .duckdb ? "DuckDB" : "CSV"
+                let item = NSMenuItem(title: "\(URL(fileURLWithPath: path).lastPathComponent) (\(typeLabel))", action: #selector(openRecentDatabase(_:)), keyEquivalent: "")
                 item.target = self
-                item.representedObject = ["path": path, "type": type == .sqlite ? "sqlite" : "duckdb"]
+                item.representedObject = ["path": path, "type": type.rawValue]
                 recentMenu.addItem(item)
             }
             recentMenu.addItem(NSMenuItem.separator())
@@ -182,6 +192,14 @@ class MenuController {
 
     @objc func openDatabase() {
         appDelegate.openDatabase()
+    }
+
+    @objc func openCSVFile() {
+        appDelegate.openCSVFile()
+    }
+
+    @objc func openCSVDirectory() {
+        appDelegate.openCSVDirectory()
     }
 
     @objc func closeDatabase() {

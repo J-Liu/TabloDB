@@ -28,6 +28,9 @@ class DatabaseManager {
             connection = SQLiteConnection(path: path)
         case .duckdb:
             connection = DuckDBConnection(path: path)
+        case .csv:
+            let isDirectory = FileManager.default.isReadableFile(atPath: path) && (try? FileManager.default.contentsOfDirectory(atPath: path)) != nil
+            connection = CSVConnection(path: path, isDirectory: isDirectory)
         }
 
         try connection.connect()

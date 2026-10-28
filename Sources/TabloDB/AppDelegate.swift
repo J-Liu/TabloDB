@@ -107,6 +107,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func openCSVFile() {
+        let openPanel = NSOpenPanel()
+        openPanel.title = L("dialog.openCSV")
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseDirectories = false
+        openPanel.allowedContentTypes = [
+            .init(filenameExtension: "csv") ?? .data,
+            .init(filenameExtension: "tsv") ?? .data
+        ]
+
+        openPanel.begin { [weak self] response in
+            guard response == .OK, let url = openPanel.url else { return }
+            self?.openDatabase(at: url.path, type: .csv)
+        }
+    }
+
+    func openCSVDirectory() {
+        let openPanel = NSOpenPanel()
+        openPanel.title = L("dialog.openCSVDir")
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseDirectories = true
+        openPanel.canChooseFiles = false
+
+        openPanel.begin { [weak self] response in
+            guard response == .OK, let url = openPanel.url else { return }
+            self?.openDatabase(at: url.path, type: .csv)
+        }
+    }
+
     func openDatabase(at path: String, type: DatabaseType) {
         do {
             let connection = try DatabaseManager.shared.openDatabase(at: path, type: type)

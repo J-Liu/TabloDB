@@ -35,6 +35,7 @@ enum DatabaseError: LocalizedError {
 enum DatabaseType: String {
     case sqlite = "sqlite"
     case duckdb = "duckdb"
+    case csv = "csv"
 }
 
 protocol DatabaseConnection {
