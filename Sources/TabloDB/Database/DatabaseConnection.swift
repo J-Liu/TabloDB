@@ -9,6 +9,8 @@ enum DatabaseError: LocalizedError {
     case invalidPath
     case tableNotFound(String)
     case unsupportedOperation(String)
+    case editNotSupported(String)
+    case noPrimaryKey(String)
 
     var errorDescription: String? {
         switch self {
@@ -22,6 +24,10 @@ enum DatabaseError: LocalizedError {
             return "Table '\(name)' not found"
         case .unsupportedOperation(let message):
             return "Operation not supported: \(message)"
+        case .editNotSupported(let message):
+            return "Cannot edit: \(message)"
+        case .noPrimaryKey(let table):
+            return "Table '\(table)' has no primary key or rowid for editing"
         }
     }
 }
@@ -41,6 +47,9 @@ protocol DatabaseConnection {
     func isConnected() -> Bool
     func getTables() throws -> [TableInfo]
     func executeQuery(_ sql: String) throws -> QueryResult
+    func executeUpdate(_ sql: String) throws
+    func getPrimaryKeyColumns(for tableName: String) throws -> [String]
+    func canEditTable(_ tableName: String) throws -> Bool
 }
 
 struct TableInfo {

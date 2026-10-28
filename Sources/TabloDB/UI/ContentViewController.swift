@@ -17,6 +17,9 @@ class ContentViewController: NSViewController {
     private var pageSize = 100
     private var currentOffset = 0
     private var totalRowCount: Int?
+    private var canEdit: Bool = false
+    private var primaryKeyColumns: [String] = []
+    private var rowIdentifiers: [[String: Any]] = []
 
     override func loadView() {
         view = NSView()
@@ -90,7 +93,6 @@ class ContentViewController: NSViewController {
         scrollView.documentView = tableView
         containerStack.addArrangedSubview(scrollView)
 
-        // Set toolbar height
         NSLayoutConstraint.activate([
             toolbarView.heightAnchor.constraint(equalToConstant: 32)
         ])
@@ -111,6 +113,7 @@ class ContentViewController: NSViewController {
             return
         }
 
+        checkEditability(tableInfo: tableInfo)
         loadTableData(tableInfo: tableInfo)
         loadRowCount(tableInfo: tableInfo)
     }
@@ -122,17 +125,66 @@ class ContentViewController: NSViewController {
         }
     }
 
+    private func checkEditability(tableInfo: TableInfo) {
+        guard let connection = DatabaseManager.shared.connections.first(where: { $0.isConnected() }) else {
+            canEdit = false
+            return
+        }
+
+        do {
+            canEdit = try connection.canEditTable(tableInfo.name)
+            if canEdit {
+                primaryKeyColumns = try connection.getPrimaryKeyColumns(for: tableInfo.name)
+            }
+        } catch {
+            canEdit = false
+            primaryKeyColumns = []
+        }
+    }
+
     private func loadTableData(tableInfo: TableInfo) {
         if let connection = DatabaseManager.shared.connections.first(where: { $0.isConnected() }) {
             currentConnection = connection
 
-            let sql = "SELECT * FROM \(tableInfo.name) LIMIT \(pageSize) OFFSET \(currentOffset)"
+            // Build query with rowid if available
+            var sql: String
+            if primaryKeyColumns.isEmpty {
+                sql = "SELECT rowid, * FROM \(tableInfo.name) LIMIT \(pageSize) OFFSET \(currentOffset)"
+            } else {
+                sql = "SELECT * FROM \(tableInfo.name) LIMIT \(pageSize) OFFSET \(currentOffset)"
+            }
+
             if let result = try? connection.executeQuery(sql) {
                 queryResult = result
+                extractRowIdentifiers(result: result)
                 DispatchQueue.main.async {
                     self.updateTableView()
                     self.updatePageInfo()
                 }
+            }
+        }
+    }
+
+    private func extractRowIdentifiers(result: QueryResult) {
+        rowIdentifiers = []
+
+        if primaryKeyColumns.isEmpty {
+            // Use rowid from first column
+            for row in result.rows {
+                if let rowid = row.first {
+                    rowIdentifiers.append(["rowid": rowid ?? 0])
+                }
+            }
+        } else {
+            // Extract primary key values
+            for row in result.rows {
+                var identifier: [String: Any] = [:]
+                for (index, col) in result.columns.enumerated() {
+                    if primaryKeyColumns.contains(col) {
+                        identifier[col] = row[index] ?? ""
+                    }
+                }
+                rowIdentifiers.append(identifier)
             }
         }
     }
@@ -159,7 +211,10 @@ class ContentViewController: NSViewController {
 
         guard let result = queryResult else { return }
 
-        for (index, columnName) in result.columns.enumerated() {
+        let startColumn = primaryKeyColumns.isEmpty ? 1 : 0
+
+        for index in startColumn..<result.columns.count {
+            let columnName = result.columns[index]
             let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("col_\(index)"))
             column.title = columnName
             column.minWidth = 80
@@ -197,6 +252,9 @@ class ContentViewController: NSViewController {
         }
         queryResult = nil
         totalRowCount = nil
+        canEdit = false
+        primaryKeyColumns = []
+        rowIdentifiers = []
         tableView.reloadData()
         updatePageInfo()
     }
@@ -213,6 +271,69 @@ class ContentViewController: NSViewController {
         currentOffset += pageSize
         if let table = currentTable {
             loadTableData(tableInfo: table)
+        }
+    }
+
+    private func saveEdit(row: Int, column: Int, newValue: Any?) {
+        guard let connection = currentConnection,
+              let tableInfo = currentTable,
+              let result = queryResult,
+              row < rowIdentifiers.count,
+              column < result.columns.count else { return }
+
+        let columnName = result.columns[column]
+
+        // Build UPDATE statement
+        var setClause: String
+        if let value = newValue {
+            if let strValue = value as? String {
+                let escaped = strValue.replacingOccurrences(of: "'", with: "''")
+                setClause = "\(columnName) = '\(escaped)'"
+            } else {
+                setClause = "\(columnName) = \(value)"
+            }
+        } else {
+            setClause = "\(columnName) = NULL"
+        }
+
+        var whereClause = ""
+        if primaryKeyColumns.isEmpty {
+            if let rowid = rowIdentifiers[row]["rowid"] {
+                whereClause = "rowid = \(rowid)"
+            }
+        } else {
+            var conditions: [String] = []
+            for (col, val) in rowIdentifiers[row] {
+                if let strVal = val as? String {
+                    let escaped = strVal.replacingOccurrences(of: "'", with: "''")
+                    conditions.append("\(col) = '\(escaped)'")
+                } else {
+                    conditions.append("\(col) = \(val)")
+                }
+            }
+            whereClause = conditions.joined(separator: " AND ")
+        }
+
+        let sql = "UPDATE \(tableInfo.name) SET \(setClause) WHERE \(whereClause)"
+
+        do {
+            try connection.executeUpdate(sql)
+            // Update local data
+            var updatedRows = result.rows
+            updatedRows[row][column] = newValue
+            queryResult = QueryResult(columns: result.columns, rows: updatedRows, error: nil)
+        } catch {
+            showError(message: error.localizedDescription)
+        }
+    }
+
+    private func showError(message: String) {
+        if let window = view.window {
+            let alert = NSAlert()
+            alert.messageText = "Error"
+            alert.informativeText = message
+            alert.alertStyle = .warning
+            alert.beginSheetModal(for: window)
         }
     }
 }
@@ -233,33 +354,15 @@ extension ContentViewController: NSTableViewDelegate {
         let value = result.rows[row][columnIndex]
         let identifier = NSUserInterfaceItemIdentifier("DataCell")
 
-        var cell = tableView.makeView(withIdentifier: identifier, owner: nil) as? NSTableCellView
+        var cell = tableView.makeView(withIdentifier: identifier, owner: nil) as? EditableCellView
         if cell == nil {
-            cell = NSTableCellView()
+            cell = EditableCellView()
             cell?.identifier = identifier
-
-            let textField = NSTextField()
-            textField.isBezeled = false
-            textField.drawsBackground = false
-            textField.isEditable = false
-            textField.isSelectable = true
-            cell?.textField = textField
-            cell?.addSubview(textField)
-
-            textField.translatesAutoresizingMaskIntoConstraints = false
-            NSLayoutConstraint.activate([
-                textField.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 4),
-                textField.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -4),
-                textField.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
-            ])
         }
 
-        if let value = value {
-            cell?.textField?.stringValue = String(describing: value)
-            cell?.textField?.textColor = .labelColor
-        } else {
-            cell?.textField?.stringValue = "NULL"
-            cell?.textField?.textColor = .systemGray
+        cell?.configure(value: value, isEditable: canEdit)
+        cell?.onEdit = { [weak self] newValue in
+            self?.saveEdit(row: row, column: columnIndex, newValue: newValue)
         }
 
         return cell
@@ -267,5 +370,91 @@ extension ContentViewController: NSTableViewDelegate {
 
     func tableView(_ tableView: NSTableView, heightOfRow row: Int) -> CGFloat {
         return 24
+    }
+}
+
+class EditableCellView: NSTableCellView {
+    private var valueLabel: NSTextField!
+    private var editField: NSTextField!
+    var onEdit: ((Any?) -> Void)?
+
+    override init(frame frameRect: NSRect) {
+        super.init(frame: frameRect)
+
+        valueLabel = NSTextField()
+        valueLabel.isBezeled = false
+        valueLabel.drawsBackground = false
+        valueLabel.isEditable = false
+        valueLabel.isSelectable = true
+        valueLabel.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(valueLabel)
+
+        editField = NSTextField()
+        editField.isBezeled = true
+        editField.bezelStyle = .roundedBezel
+        editField.isHidden = true
+        editField.translatesAutoresizingMaskIntoConstraints = false
+        editField.target = self
+        editField.action = #selector(editEnded)
+        addSubview(editField)
+
+        NSLayoutConstraint.activate([
+            valueLabel.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 4),
+            valueLabel.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -4),
+            valueLabel.centerYAnchor.constraint(equalTo: centerYAnchor),
+            editField.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 2),
+            editField.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -2),
+            editField.centerYAnchor.constraint(equalTo: centerYAnchor)
+        ])
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    func configure(value: Any?, isEditable: Bool) {
+        if let value = value {
+            valueLabel.stringValue = String(describing: value)
+            valueLabel.textColor = .labelColor
+            editField.stringValue = String(describing: value)
+        } else {
+            valueLabel.stringValue = "NULL"
+            valueLabel.textColor = .systemGray
+            editField.stringValue = ""
+        }
+
+        if isEditable {
+            valueLabel.allowsEditingTextAttributes = true
+        }
+    }
+
+    override func mouseDown(with event: NSEvent) {
+        if editField.isHidden && event.clickCount == 2 {
+            startEditing()
+        } else {
+            super.mouseDown(with: event)
+        }
+    }
+
+    private func startEditing() {
+        valueLabel.isHidden = true
+        editField.isHidden = false
+        window?.makeFirstResponder(editField)
+    }
+
+    @objc private func editEnded() {
+        valueLabel.isHidden = false
+        editField.isHidden = true
+
+        let newString = editField.stringValue
+        if newString.isEmpty {
+            onEdit?(nil)
+            valueLabel.stringValue = "NULL"
+            valueLabel.textColor = .systemGray
+        } else {
+            onEdit?(newString)
+            valueLabel.stringValue = newString
+            valueLabel.textColor = .labelColor
+        }
     }
 }

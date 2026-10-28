@@ -149,4 +149,74 @@ class SQLiteConnection: DatabaseConnection {
             return nil
         }
     }
+
+    func executeUpdate(_ sql: String) throws {
+        guard let db = db else {
+            throw DatabaseError.connectionFailed("Database not connected")
+        }
+
+        var errMsg: UnsafeMutablePointer<CChar>?
+        if sqlite3_exec(db, sql, nil, nil, &errMsg) != SQLITE_OK {
+            let error = String(cString: errMsg!)
+            sqlite3_free(errMsg)
+            throw DatabaseError.queryFailed(error)
+        }
+    }
+
+    func getPrimaryKeyColumns(for tableName: String) throws -> [String] {
+        let columns = try getColumns(for: tableName)
+        let pkColumns = columns.filter { $0.isPrimaryKey }.map { $0.name }
+        return pkColumns
+    }
+
+    func canEditTable(_ tableName: String) throws -> Bool {
+        // Check if table is a view
+        guard let db = db else {
+            throw DatabaseError.connectionFailed("Database not connected")
+        }
+
+        var stmt: OpaquePointer?
+        let query = "SELECT type FROM sqlite_master WHERE name = ?"
+
+        guard sqlite3_prepare_v2(db, query, -1, &stmt, nil) == SQLITE_OK else {
+            throw DatabaseError.queryFailed(String(cString: sqlite3_errmsg(db)))
+        }
+
+        sqlite3_bind_text(stmt, 1, (tableName as NSString).utf8String, -1, nil)
+
+        var isView = false
+        if sqlite3_step(stmt) == SQLITE_ROW {
+            let typeStr = String(cString: sqlite3_column_text(stmt, 0))
+            isView = (typeStr == "view")
+        }
+        sqlite3_finalize(stmt)
+
+        if isView {
+            return false
+        }
+
+        // Check if table has primary key
+        let pkColumns = try getPrimaryKeyColumns(for: tableName)
+        if !pkColumns.isEmpty {
+            return true
+        }
+
+        // Check if table uses rowid (not WITHOUT ROWID)
+        var withoutRowidStmt: OpaquePointer?
+        let withoutRowidQuery = "SELECT COUNT(*) FROM sqlite_master WHERE name = ? AND sql LIKE '%WITHOUT ROWID%'"
+
+        guard sqlite3_prepare_v2(db, withoutRowidQuery, -1, &withoutRowidStmt, nil) == SQLITE_OK else {
+            throw DatabaseError.queryFailed(String(cString: sqlite3_errmsg(db)))
+        }
+
+        sqlite3_bind_text(withoutRowidStmt, 1, (tableName as NSString).utf8String, -1, nil)
+
+        var usesRowid = true
+        if sqlite3_step(withoutRowidStmt) == SQLITE_ROW {
+            usesRowid = sqlite3_column_int(withoutRowidStmt, 0) == 0
+        }
+        sqlite3_finalize(withoutRowidStmt)
+
+        return usesRowid
+    }
 }
