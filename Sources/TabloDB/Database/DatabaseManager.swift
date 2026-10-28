@@ -27,7 +27,7 @@ class DatabaseManager {
         case .sqlite:
             connection = SQLiteConnection(path: path)
         case .duckdb:
-            throw DatabaseError.unsupportedOperation("DuckDB support coming soon")
+            connection = DuckDBConnection(path: path)
         }
 
         try connection.connect()
