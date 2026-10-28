@@ -12,6 +12,7 @@ class SidebarViewController: NSViewController {
     private var tables: [TableInfo] = []
     private var filteredTables: [TableInfo] = []
     private(set) var currentConnection: DatabaseConnection?
+    private var tableColumn: NSTableColumn!
 
     override func loadView() {
         view = NSView()
@@ -28,13 +29,12 @@ class SidebarViewController: NSViewController {
             stackView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
         ])
 
-        // Search field and add button
         let searchContainer = NSView()
         searchContainer.translatesAutoresizingMaskIntoConstraints = false
 
         searchField = NSSearchField()
         searchField.translatesAutoresizingMaskIntoConstraints = false
-        searchField.placeholderString = "Search tables..."
+        searchField.placeholderString = L("sidebar.search.placeholder")
         searchField.target = self
         searchField.action = #selector(searchTextChanged)
         searchField.bezelStyle = .roundedBezel
@@ -57,7 +57,6 @@ class SidebarViewController: NSViewController {
         ])
         stackView.addArrangedSubview(searchContainer)
 
-        // Table list
         let scrollView = NSScrollView()
         scrollView.hasVerticalScroller = true
         scrollView.borderType = .noBorder
@@ -71,20 +70,32 @@ class SidebarViewController: NSViewController {
         tableView.doubleAction = #selector(tableDoubleClicked)
         tableView.menu = createTableMenu()
 
-        let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("name"))
-        column.title = "Tables"
-        tableView.addTableColumn(column)
+        tableColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("name"))
+        tableColumn.title = L("sidebar.tables")
+        tableView.addTableColumn(tableColumn)
 
         tableView.dataSource = self
         tableView.delegate = self
 
         scrollView.documentView = tableView
         stackView.addArrangedSubview(scrollView)
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(languageDidChange),
+            name: .languageChanged,
+            object: nil
+        )
     }
 
     override func viewDidLoad() {
         super.viewDidLoad()
         view.wantsLayer = true
+    }
+
+    @objc private func languageDidChange() {
+        searchField.placeholderString = L("sidebar.search.placeholder")
+        tableColumn.title = L("sidebar.tables")
     }
 
     func setConnection(_ connection: DatabaseConnection) {
@@ -144,14 +155,12 @@ class SidebarViewController: NSViewController {
         onTableSelected?(filteredTables[row])
     }
 
-    // MARK: - Table Operations
-
     private func createTableMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(NSMenuItem(title: "Rename Table", action: #selector(renameTable), keyEquivalent: ""))
-        menu.addItem(NSMenuItem(title: "Empty Table", action: #selector(emptyTable), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: L("sidebar.menu.rename"), action: #selector(renameTable), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: L("sidebar.menu.empty"), action: #selector(emptyTable), keyEquivalent: ""))
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(NSMenuItem(title: "Delete Table", action: #selector(deleteTable), keyEquivalent: ""))
+        menu.addItem(NSMenuItem(title: L("sidebar.menu.delete"), action: #selector(deleteTable), keyEquivalent: ""))
         return menu
     }
 
@@ -159,10 +168,10 @@ class SidebarViewController: NSViewController {
         guard let connection = currentConnection else { return }
 
         let alert = NSAlert()
-        alert.messageText = "Create New Table"
-        alert.informativeText = "Enter table name:"
-        alert.addButton(withTitle: "Create")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = L("sidebar.newTable.title")
+        alert.informativeText = L("sidebar.newTable.message")
+        alert.addButton(withTitle: L("sidebar.newTable.create"))
+        alert.addButton(withTitle: L("sidebar.newTable.cancel"))
 
         let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
         textField.stringValue = "new_table"
@@ -191,15 +200,15 @@ class SidebarViewController: NSViewController {
         let tableInfo = filteredTables[row]
 
         guard tableInfo.type == .table else {
-            showError(message: "Cannot rename views")
+            showError(message: L("sidebar.error.cannotRenameView"))
             return
         }
 
         let alert = NSAlert()
-        alert.messageText = "Rename Table"
-        alert.informativeText = "Enter new name for '\(tableInfo.name)':"
-        alert.addButton(withTitle: "Rename")
-        alert.addButton(withTitle: "Cancel")
+        alert.messageText = L("sidebar.renameTable.title")
+        alert.informativeText = L("sidebar.renameTable.message", tableInfo.name)
+        alert.addButton(withTitle: L("sidebar.renameTable.rename"))
+        alert.addButton(withTitle: L("sidebar.renameTable.cancel"))
 
         let textField = NSTextField(frame: NSRect(x: 0, y: 0, width: 200, height: 24))
         textField.stringValue = tableInfo.name
@@ -228,16 +237,16 @@ class SidebarViewController: NSViewController {
         let tableInfo = filteredTables[row]
 
         guard tableInfo.type == .table else {
-            showError(message: "Cannot empty views")
+            showError(message: L("sidebar.error.cannotEmptyView"))
             return
         }
 
         let alert = NSAlert()
-        alert.messageText = "Empty Table"
-        alert.informativeText = "Are you sure you want to delete all rows from '\(tableInfo.name)'? This cannot be undone."
+        alert.messageText = L("sidebar.emptyTable.title")
+        alert.informativeText = L("sidebar.emptyTable.message", tableInfo.name)
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Empty")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: L("sidebar.emptyTable.empty"))
+        alert.addButton(withTitle: L("sidebar.emptyTable.cancel"))
 
         alert.beginSheetModal(for: view.window!) { response in
             if response == .alertFirstButtonReturn {
@@ -259,11 +268,11 @@ class SidebarViewController: NSViewController {
         let tableInfo = filteredTables[row]
 
         let alert = NSAlert()
-        alert.messageText = "Delete \(tableInfo.type == .view ? "View" : "Table")"
-        alert.informativeText = "Are you sure you want to delete '\(tableInfo.name)'? This cannot be undone."
+        alert.messageText = L("sidebar.deleteTable.title", tableInfo.type == .view ? "View" : "Table")
+        alert.informativeText = L("sidebar.deleteTable.message", tableInfo.name)
         alert.alertStyle = .critical
-        alert.addButton(withTitle: "Delete")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: L("sidebar.deleteTable.delete"))
+        alert.addButton(withTitle: L("sidebar.deleteTable.cancel"))
 
         alert.beginSheetModal(for: view.window!) { response in
             if response == .alertFirstButtonReturn {
@@ -281,7 +290,7 @@ class SidebarViewController: NSViewController {
     private func showError(message: String) {
         if let window = view.window {
             let alert = NSAlert()
-            alert.messageText = "Error"
+            alert.messageText = L("table.error")
             alert.informativeText = message
             alert.alertStyle = .critical
             alert.beginSheetModal(for: window)
@@ -325,8 +334,8 @@ extension SidebarViewController: NSTableViewDelegate {
 
         cell?.textField?.stringValue = tableInfo.name
         cell?.imageView?.image = tableInfo.type == .view
-            ? NSImage(systemSymbolName: "eye", accessibilityDescription: "View")
-            : NSImage(systemSymbolName: "tablecells", accessibilityDescription: "Table")
+            ? NSImage(systemSymbolName: "eye", accessibilityDescription: nil)
+            : NSImage(systemSymbolName: "tablecells", accessibilityDescription: nil)
 
         return cell
     }

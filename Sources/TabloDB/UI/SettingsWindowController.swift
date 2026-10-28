@@ -5,6 +5,18 @@ import AppKit
 
 class SettingsWindowController: NSWindowController {
     private var tabView: NSTabView!
+    private var generalTab: NSView!
+    private var aboutTab: NSView!
+    private var languagePopup: NSPopUpButton!
+    private var versionLabel: NSTextField!
+    private var copyrightLabel: NSTextField!
+    private var descriptionLabel: NSTextField!
+    private var nameLabel: NSTextField!
+    private var githubButton: NSButton!
+
+    private let labelWidth: CGFloat = 100
+    private let controlWidth: CGFloat = 200
+    private let rowSpacing: CGFloat = 16
 
     init() {
         let screenFrame = NSScreen.main?.visibleFrame ?? .zero
@@ -20,13 +32,20 @@ class SettingsWindowController: NSWindowController {
             backing: .buffered,
             defer: false
         )
-        window.title = "Settings"
+        window.title = L("settings.title")
         window.minSize = NSSize(width: 400, height: 300)
 
         super.init(window: window)
 
         setupUI()
         setupKeyHandlers()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(languageDidChange),
+            name: .languageChanged,
+            object: nil
+        )
     }
 
     required init?(coder: NSCoder) {
@@ -39,14 +58,96 @@ class SettingsWindowController: NSWindowController {
         tabView = NSTabView(frame: contentView.bounds.insetBy(dx: 10, dy: 10))
         tabView.autoresizingMask = [.width, .height]
 
-        let aboutTab = createAboutTab()
-        let aboutItem = NSTabViewItem(identifier: "about")
-        aboutItem.label = "About"
-        aboutItem.view = aboutTab
-        tabView.addTabViewItem(aboutItem)
+        recreateTabs()
 
         contentView.addSubview(tabView)
     }
+
+    private func recreateTabs() {
+        while let tab = tabView.tabViewItems.first {
+            tabView.removeTabViewItem(tab)
+        }
+
+        generalTab = createGeneralTab()
+        let generalItem = NSTabViewItem(identifier: "general")
+        generalItem.label = L("settings.tab.general")
+        generalItem.view = generalTab
+        tabView.addTabViewItem(generalItem)
+
+        aboutTab = createAboutTab()
+        let aboutItem = NSTabViewItem(identifier: "about")
+        aboutItem.label = L("settings.tab.about")
+        aboutItem.view = aboutTab
+        tabView.addTabViewItem(aboutItem)
+
+        window?.title = L("settings.title")
+    }
+
+    @objc private func languageDidChange() {
+        recreateTabs()
+    }
+
+    // MARK: - Layout Helpers
+
+    private func wrapInTopAlignedContainer(_ stack: NSStackView) -> NSView {
+        let container = NSView()
+        stack.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(stack)
+        NSLayoutConstraint.activate([
+            stack.topAnchor.constraint(equalTo: container.topAnchor),
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            stack.trailingAnchor.constraint(lessThanOrEqualTo: container.trailingAnchor)
+        ])
+        return container
+    }
+
+    private func makeRow(label: String, control: NSView) -> NSStackView {
+        let labelField = NSTextField(labelWithString: label)
+        labelField.alignment = .right
+        labelField.translatesAutoresizingMaskIntoConstraints = false
+        labelField.widthAnchor.constraint(equalToConstant: labelWidth).isActive = true
+
+        control.translatesAutoresizingMaskIntoConstraints = false
+
+        let row = NSStackView(views: [labelField, control])
+        row.orientation = .horizontal
+        row.spacing = 12
+        row.alignment = .centerY
+        return row
+    }
+
+    private func makeVerticalStack() -> NSStackView {
+        let stack = NSStackView()
+        stack.orientation = .vertical
+        stack.alignment = .leading
+        stack.spacing = rowSpacing
+        stack.edgeInsets = NSEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
+        return stack
+    }
+
+    // MARK: - General Tab
+
+    private func createGeneralTab() -> NSView {
+        let stack = makeVerticalStack()
+
+        languagePopup = NSPopUpButton()
+        for language in AppLanguage.allCases {
+            languagePopup.addItem(withTitle: language.displayName)
+            languagePopup.lastItem?.representedObject = language
+        }
+        let current = LocalizationManager.shared.currentLanguage
+        if let index = AppLanguage.allCases.firstIndex(of: current) {
+            languagePopup.selectItem(at: index)
+        }
+        languagePopup.target = self
+        languagePopup.action = #selector(languageChanged(_:))
+        languagePopup.widthAnchor.constraint(equalToConstant: controlWidth).isActive = true
+        stack.addArrangedSubview(makeRow(label: L("settings.language"), control: languagePopup))
+
+        return wrapInTopAlignedContainer(stack)
+    }
+
+    // MARK: - About Tab
 
     private func createAboutTab() -> NSView {
         let container = NSView()
@@ -66,7 +167,7 @@ class SettingsWindowController: NSWindowController {
         appIcon.heightAnchor.constraint(equalToConstant: 80).isActive = true
         container.addSubview(appIcon)
 
-        let nameLabel = NSTextField(labelWithString: "TabloDB")
+        nameLabel = NSTextField(labelWithString: "TabloDB")
         nameLabel.font = .systemFont(ofSize: 22, weight: .semibold)
         nameLabel.alignment = .center
         nameLabel.translatesAutoresizingMaskIntoConstraints = false
@@ -74,25 +175,25 @@ class SettingsWindowController: NSWindowController {
 
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.1.0"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-        let versionLabel = NSTextField(labelWithString: "Version \(version) (\(build))")
+        versionLabel = NSTextField(labelWithString: "\(L("settings.about.version")) \(version) (\(build))")
         versionLabel.alignment = .center
         versionLabel.textColor = .secondaryLabelColor
         versionLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(versionLabel)
 
-        let copyrightLabel = NSTextField(labelWithString: "Copyright © 2026 Jia Liu")
+        copyrightLabel = NSTextField(labelWithString: L("settings.about.copyright"))
         copyrightLabel.alignment = .center
         copyrightLabel.textColor = .secondaryLabelColor
         copyrightLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(copyrightLabel)
 
-        let descriptionLabel = NSTextField(wrappingLabelWithString: "A native macOS database GUI for SQLite and DuckDB.")
+        descriptionLabel = NSTextField(wrappingLabelWithString: L("settings.about.description"))
         descriptionLabel.alignment = .center
         descriptionLabel.textColor = .secondaryLabelColor
         descriptionLabel.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(descriptionLabel)
 
-        let githubButton = NSButton(title: "github.com/J-Liu/TabloDB", target: self, action: #selector(openGitHub))
+        githubButton = NSButton(title: "github.com/J-Liu/TabloDB", target: self, action: #selector(openGitHub))
         githubButton.bezelStyle = .rounded
         githubButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(githubButton)
@@ -136,6 +237,11 @@ class SettingsWindowController: NSWindowController {
             }
             return event
         }
+    }
+
+    @objc private func languageChanged(_ sender: NSPopUpButton) {
+        guard let selected = sender.selectedItem?.representedObject as? AppLanguage else { return }
+        LocalizationManager.shared.currentLanguage = selected
     }
 
     @objc private func openGitHub() {

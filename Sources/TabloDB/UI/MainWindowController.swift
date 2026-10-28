@@ -9,6 +9,8 @@ class MainWindowController: NSWindowController {
     private var contentController: ContentViewController!
     private var sqlEditorController: SQLEditorViewController!
     private var tabViewController: NSTabViewController!
+    private var dataTab: NSTabViewItem!
+    private var sqlTab: NSTabViewItem!
 
     init() {
         let window = NSWindow(
@@ -24,6 +26,13 @@ class MainWindowController: NSWindowController {
         super.init(window: window)
 
         setupSplitView()
+
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(languageDidChange),
+            name: .languageChanged,
+            object: nil
+        )
     }
 
     required init?(coder: NSCoder) {
@@ -35,20 +44,19 @@ class MainWindowController: NSWindowController {
 
         sidebarController = SidebarViewController()
 
-        // Create tab view controller for main content
         tabViewController = NSTabViewController()
         tabViewController.tabStyle = .toolbar
 
         contentController = ContentViewController()
         sqlEditorController = SQLEditorViewController()
 
-        let dataTab = NSTabViewItem(viewController: contentController)
-        dataTab.label = "Data"
-        dataTab.image = NSImage(systemSymbolName: "tablecells", accessibilityDescription: "Data")
+        dataTab = NSTabViewItem(viewController: contentController)
+        dataTab.label = L("tab.data")
+        dataTab.image = NSImage(systemSymbolName: "tablecells", accessibilityDescription: nil)
 
-        let sqlTab = NSTabViewItem(viewController: sqlEditorController)
-        sqlTab.label = "SQL"
-        sqlTab.image = NSImage(systemSymbolName: "terminal", accessibilityDescription: "SQL")
+        sqlTab = NSTabViewItem(viewController: sqlEditorController)
+        sqlTab.label = L("tab.sql")
+        sqlTab.image = NSImage(systemSymbolName: "terminal", accessibilityDescription: nil)
 
         tabViewController.addTabViewItem(dataTab)
         tabViewController.addTabViewItem(sqlTab)
@@ -66,9 +74,13 @@ class MainWindowController: NSWindowController {
 
         sidebarController.onTableSelected = { [weak self] tableInfo in
             self?.contentController.displayTable(tableInfo)
-            // Switch to data tab when table is selected
             self?.tabViewController.selectedTabViewItemIndex = 0
         }
+    }
+
+    @objc private func languageDidChange() {
+        dataTab.label = L("tab.data")
+        sqlTab.label = L("tab.sql")
     }
 
     func setActiveConnection(_ connection: DatabaseConnection) {
@@ -87,7 +99,6 @@ class MainWindowController: NSWindowController {
     }
 
     func moveSelectedDatabaseToTrash() {
-        // TODO: Implement when we have a database list view
     }
 
     func refresh() {
@@ -99,15 +110,15 @@ class MainWindowController: NSWindowController {
         guard let result = contentController.getCurrentQueryResult(),
               let tableName = contentController.getCurrentTableName() else {
             let alert = NSAlert()
-            alert.messageText = "No Data"
-            alert.informativeText = "Please select a table to export."
+            alert.messageText = L("error.noData")
+            alert.informativeText = L("error.noData.message")
             alert.alertStyle = .informational
             alert.runModal()
             return
         }
 
         let savePanel = NSSavePanel()
-        savePanel.title = "Export as CSV"
+        savePanel.title = L("dialog.export")
         savePanel.allowedContentTypes = [.init(filenameExtension: "csv") ?? .data]
         savePanel.nameFieldStringValue = "\(tableName).csv"
 
@@ -117,7 +128,7 @@ class MainWindowController: NSWindowController {
                 try CSVExporter.exportTableData(result: result, to: url)
             } catch {
                 let alert = NSAlert()
-                alert.messageText = "Export Failed"
+                alert.messageText = L("error.exportFailed")
                 alert.informativeText = error.localizedDescription
                 alert.alertStyle = .critical
                 alert.runModal()
@@ -128,15 +139,15 @@ class MainWindowController: NSWindowController {
     func importCSV() {
         guard sidebarController.currentConnection != nil else {
             let alert = NSAlert()
-            alert.messageText = "No Database"
-            alert.informativeText = "Please open a database first."
+            alert.messageText = L("error.noDatabase")
+            alert.informativeText = L("error.noDatabase.message")
             alert.alertStyle = .informational
             alert.runModal()
             return
         }
 
         let openPanel = NSOpenPanel()
-        openPanel.title = "Import CSV"
+        openPanel.title = L("dialog.import")
         openPanel.allowedContentTypes = [.init(filenameExtension: "csv") ?? .data]
 
         openPanel.begin { [weak self] response in
@@ -147,13 +158,13 @@ class MainWindowController: NSWindowController {
                 self?.sidebarController.refresh()
 
                 let alert = NSAlert()
-                alert.messageText = "Import Successful"
-                alert.informativeText = "Imported \(result.rowCount) rows into table '\(result.tableName)'."
+                alert.messageText = L("success.import")
+                alert.informativeText = L("success.import.message", result.rowCount, result.tableName)
                 alert.alertStyle = .informational
                 alert.runModal()
             } catch {
                 let alert = NSAlert()
-                alert.messageText = "Import Failed"
+                alert.messageText = L("error.importFailed")
                 alert.informativeText = error.localizedDescription
                 alert.alertStyle = .critical
                 alert.runModal()
