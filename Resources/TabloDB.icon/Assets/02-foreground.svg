@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <defs>
+    <linearGradient id="cursorGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#4A90C4" stop-opacity="1"/>
+      <stop offset="100%" stop-color="#4A90C4" stop-opacity="0"/>
+    </linearGradient>
+  </defs>
+
+  <!-- Table body: warm white with a subtle warm-grey outline -->
+  <rect x="256" y="256" width="512" height="512" rx="48" ry="48"
+        fill="#FFF9F0" stroke="#E8D5C0" stroke-width="4"/>
+
+  <!-- Edit-state cell highlight: bottom-right cell -->
+  <!-- Cell bounds: x 597.33-768, y 597.33-768 -->
+  <rect x="597.33" y="597.33" width="170.67" height="170.67"
+        fill="#E8F2FA" stroke="#4A90C4" stroke-width="6"/>
+
+  <!-- Grid lines: warm light grey -->
+  <g stroke="#D9C8B8" stroke-width="4" stroke-linecap="round">
+    <!-- Vertical dividers -->
+    <line x1="426.67" y1="256" x2="426.67" y2="768"/>
+    <line x1="597.33" y1="256" x2="597.33" y2="768"/>
+    <!-- Horizontal dividers -->
+    <line x1="256" y1="426.67" x2="768" y2="426.67"/>
+    <line x1="256" y1="597.33" x2="768" y2="597.33"/>
+  </g>
+
+  <!-- Cursor: left edge of the editing cell, fading to transparent at the bottom -->
+  <rect x="614" y="626" width="20" height="114" rx="10" ry="10"
+        fill="url(#cursorGradient)"/>
+</svg>
