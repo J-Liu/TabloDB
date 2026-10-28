@@ -29,10 +29,24 @@ class MenuController {
         let appMenuItem = NSMenuItem()
         appMenuItem.submenu = appMenu
 
-        appMenu.addItem(NSMenuItem(title: L("menu.about", appName), action: #selector(showAbout), keyEquivalent: ""))
+        let aboutItem = NSMenuItem(title: L("menu.about", appName), action: #selector(showAbout), keyEquivalent: "")
+        aboutItem.target = self
+        appMenu.addItem(aboutItem)
+
         appMenu.addItem(NSMenuItem.separator())
-        appMenu.addItem(NSMenuItem(title: L("menu.checkForUpdates"), action: #selector(checkForUpdates), keyEquivalent: ""))
+
+        let prefsItem = NSMenuItem(title: L("menu.preferences"), action: #selector(showPreferences), keyEquivalent: ",")
+        prefsItem.target = self
+        appMenu.addItem(prefsItem)
+
         appMenu.addItem(NSMenuItem.separator())
+
+        let checkUpdatesItem = NSMenuItem(title: L("menu.checkForUpdates"), action: #selector(checkForUpdates), keyEquivalent: "")
+        checkUpdatesItem.target = self
+        appMenu.addItem(checkUpdatesItem)
+
+        appMenu.addItem(NSMenuItem.separator())
+
         appMenu.addItem(NSMenuItem(title: L("menu.hide", appName), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
         appMenu.addItem(NSMenuItem(title: L("menu.hideOthers"), action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h").withKeyModifier(.option))
         appMenu.addItem(NSMenuItem(title: L("menu.showAll"), action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: ""))
@@ -46,11 +60,25 @@ class MenuController {
         let fileMenuItem = NSMenuItem()
         fileMenuItem.submenu = fileMenu
 
-        fileMenu.addItem(NSMenuItem(title: L("menu.newSQLite"), action: #selector(newSQLiteDatabase), keyEquivalent: "n"))
-        fileMenu.addItem(NSMenuItem(title: L("menu.newDuckDB"), action: #selector(newDuckDBDatabase), keyEquivalent: "n").withKeyModifier(.option))
+        let newSQLiteItem = NSMenuItem(title: L("menu.newSQLite"), action: #selector(newSQLiteDatabase), keyEquivalent: "n")
+        newSQLiteItem.target = self
+        fileMenu.addItem(newSQLiteItem)
+
+        let newDuckDBItem = NSMenuItem(title: L("menu.newDuckDB"), action: #selector(newDuckDBDatabase), keyEquivalent: "n")
+        newDuckDBItem.target = self
+        newDuckDBItem.keyEquivalentModifierMask = [.command, .option]
+        fileMenu.addItem(newDuckDBItem)
+
         fileMenu.addItem(NSMenuItem.separator())
-        fileMenu.addItem(NSMenuItem(title: L("menu.open"), action: #selector(openDatabase), keyEquivalent: "o"))
-        fileMenu.addItem(NSMenuItem(title: L("menu.close"), action: #selector(closeDatabase), keyEquivalent: "w"))
+
+        let openItem = NSMenuItem(title: L("menu.open"), action: #selector(openDatabase), keyEquivalent: "o")
+        openItem.target = self
+        fileMenu.addItem(openItem)
+
+        let closeItem = NSMenuItem(title: L("menu.close"), action: #selector(closeDatabase), keyEquivalent: "w")
+        closeItem.target = self
+        fileMenu.addItem(closeItem)
+
         fileMenu.addItem(NSMenuItem.separator())
 
         recentMenu = NSMenu(title: L("menu.recent"))
@@ -59,10 +87,20 @@ class MenuController {
         fileMenu.addItem(recentMenuItem)
 
         fileMenu.addItem(NSMenuItem.separator())
-        fileMenu.addItem(NSMenuItem(title: L("menu.export"), action: #selector(exportCSV), keyEquivalent: "e"))
-        fileMenu.addItem(NSMenuItem(title: L("menu.import"), action: #selector(importCSV), keyEquivalent: "i"))
+
+        let exportItem = NSMenuItem(title: L("menu.export"), action: #selector(exportCSV), keyEquivalent: "e")
+        exportItem.target = self
+        fileMenu.addItem(exportItem)
+
+        let importItem = NSMenuItem(title: L("menu.import"), action: #selector(importCSV), keyEquivalent: "i")
+        importItem.target = self
+        fileMenu.addItem(importItem)
+
         fileMenu.addItem(NSMenuItem.separator())
-        fileMenu.addItem(NSMenuItem(title: L("menu.moveToTrash"), action: #selector(moveToTrash), keyEquivalent: ""))
+
+        let trashItem = NSMenuItem(title: L("menu.moveToTrash"), action: #selector(moveToTrash), keyEquivalent: "")
+        trashItem.target = self
+        fileMenu.addItem(trashItem)
 
         mainMenu.addItem(fileMenuItem)
 
@@ -75,7 +113,7 @@ class MenuController {
         editMenu.addItem(NSMenuItem(title: L("menu.redo"), action: Selector(("redo:")), keyEquivalent: "z").withKeyModifier(.shift))
         editMenu.addItem(NSMenuItem.separator())
         editMenu.addItem(NSMenuItem(title: L("menu.cut"), action: #selector(NSText.cut(_:)), keyEquivalent: "x"))
-        editMenu.addItem(NSMenuItem(title: L("menu.copy"), action: #selector(copySelection), keyEquivalent: "c"))
+        editMenu.addItem(NSMenuItem(title: L("menu.copy"), action: #selector(NSText.copy(_:)), keyEquivalent: "c"))
         editMenu.addItem(NSMenuItem(title: L("menu.paste"), action: #selector(NSText.paste(_:)), keyEquivalent: "v"))
         editMenu.addItem(NSMenuItem(title: L("menu.selectAll"), action: #selector(NSText.selectAll(_:)), keyEquivalent: "a"))
 
@@ -86,7 +124,9 @@ class MenuController {
         let viewMenuItem = NSMenuItem()
         viewMenuItem.submenu = viewMenu
 
-        viewMenu.addItem(NSMenuItem(title: L("menu.refresh"), action: #selector(refresh), keyEquivalent: "r"))
+        let refreshItem = NSMenuItem(title: L("menu.refresh"), action: #selector(refresh), keyEquivalent: "r")
+        refreshItem.target = self
+        viewMenu.addItem(refreshItem)
 
         mainMenu.addItem(viewMenuItem)
 
@@ -97,6 +137,8 @@ class MenuController {
 
         windowMenu.addItem(NSMenuItem(title: L("menu.minimize"), action: #selector(NSWindow.miniaturize(_:)), keyEquivalent: "m"))
         windowMenu.addItem(NSMenuItem(title: L("menu.zoom"), action: #selector(NSWindow.zoom(_:)), keyEquivalent: ""))
+        windowMenu.addItem(NSMenuItem.separator())
+        windowMenu.addItem(NSMenuItem(title: L("menu.bringAllToFront"), action: #selector(NSApplication.arrangeInFront(_:)), keyEquivalent: ""))
 
         mainMenu.addItem(windowMenuItem)
 
@@ -117,11 +159,14 @@ class MenuController {
         } else {
             for (path, type) in recent {
                 let item = NSMenuItem(title: "\(URL(fileURLWithPath: path).lastPathComponent) (\(type == .sqlite ? "SQLite" : "DuckDB"))", action: #selector(openRecentDatabase(_:)), keyEquivalent: "")
+                item.target = self
                 item.representedObject = ["path": path, "type": type == .sqlite ? "sqlite" : "duckdb"]
                 recentMenu.addItem(item)
             }
             recentMenu.addItem(NSMenuItem.separator())
-            recentMenu.addItem(NSMenuItem(title: L("menu.recent.clear"), action: #selector(clearRecentList), keyEquivalent: ""))
+            let clearItem = NSMenuItem(title: L("menu.recent.clear"), action: #selector(clearRecentList), keyEquivalent: "")
+            clearItem.target = self
+            recentMenu.addItem(clearItem)
         }
     }
 
@@ -174,11 +219,11 @@ class MenuController {
         appDelegate.importCSV()
     }
 
-    @objc func copySelection() {
-        appDelegate.copySelection()
+    @objc func showAbout() {
+        appDelegate.showSettings()
     }
 
-    @objc func showAbout() {
+    @objc func showPreferences() {
         appDelegate.showSettings()
     }
 

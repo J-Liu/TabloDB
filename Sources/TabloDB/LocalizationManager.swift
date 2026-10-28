@@ -151,6 +151,7 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "menu.window": "Window",
         "menu.help": "Help",
         "menu.about": "About %@",
+        "menu.preferences": "Preferences...",
         "menu.checkForUpdates": "Check for Updates...",
         "menu.quit": "Quit %@",
         "menu.hide": "Hide %@",
@@ -169,6 +170,7 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "menu.refresh": "Refresh",
         "menu.minimize": "Minimize",
         "menu.zoom": "Zoom",
+        "menu.bringAllToFront": "Bring All to Front",
 
         // Dialogs
         "dialog.newSQLite": "New SQLite Database",
@@ -264,6 +266,7 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "menu.window": "窗口",
         "menu.help": "帮助",
         "menu.about": "关于 %@",
+        "menu.preferences": "偏好设置...",
         "menu.checkForUpdates": "检查更新...",
         "menu.quit": "退出 %@",
         "menu.hide": "隐藏 %@",
@@ -282,6 +285,7 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "menu.refresh": "刷新",
         "menu.minimize": "最小化",
         "menu.zoom": "缩放",
+        "menu.bringAllToFront": "全部移到最前",
 
         // Dialogs
         "dialog.newSQLite": "新建 SQLite 数据库",
@@ -377,6 +381,7 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "menu.window": "視窗",
         "menu.help": "輔助說明",
         "menu.about": "關於 %@",
+        "menu.preferences": "偏好設定...",
         "menu.checkForUpdates": "檢查更新...",
         "menu.quit": "結束 %@",
         "menu.hide": "隱藏 %@",
@@ -395,6 +400,7 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "menu.refresh": "重新整理",
         "menu.minimize": "最小化",
         "menu.zoom": "縮放",
+        "menu.bringAllToFront": "全部移到最前",
 
         // Dialogs
         "dialog.newSQLite": "新建 SQLite 資料庫",
