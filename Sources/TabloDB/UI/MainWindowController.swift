@@ -124,4 +124,40 @@ class MainWindowController: NSWindowController {
             }
         }
     }
+
+    func importCSV() {
+        guard sidebarController.currentConnection != nil else {
+            let alert = NSAlert()
+            alert.messageText = "No Database"
+            alert.informativeText = "Please open a database first."
+            alert.alertStyle = .informational
+            alert.runModal()
+            return
+        }
+
+        let openPanel = NSOpenPanel()
+        openPanel.title = "Import CSV"
+        openPanel.allowedContentTypes = [.init(filenameExtension: "csv") ?? .data]
+
+        openPanel.begin { [weak self] response in
+            guard response == .OK, let url = openPanel.url else { return }
+
+            do {
+                let result = try CSVImporter.importCSV(from: url, into: self!.sidebarController.currentConnection!)
+                self?.sidebarController.refresh()
+
+                let alert = NSAlert()
+                alert.messageText = "Import Successful"
+                alert.informativeText = "Imported \(result.rowCount) rows into table '\(result.tableName)'."
+                alert.alertStyle = .informational
+                alert.runModal()
+            } catch {
+                let alert = NSAlert()
+                alert.messageText = "Import Failed"
+                alert.informativeText = error.localizedDescription
+                alert.alertStyle = .critical
+                alert.runModal()
+            }
+        }
+    }
 }

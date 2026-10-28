@@ -97,6 +97,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowController?.exportCurrentTable()
     }
 
+    func importCSV() {
+        windowController?.importCSV()
+    }
+
     func showError(message: String) {
         let alert = NSAlert()
         alert.messageText = "Error"
