@@ -93,6 +93,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowController?.refresh()
     }
 
+    func exportCSV() {
+        windowController?.exportCurrentTable()
+    }
+
     func showError(message: String) {
         let alert = NSAlert()
         alert.messageText = "Error"

@@ -141,6 +141,26 @@ class ContentViewController: NSViewController {
         }
     }
 
+    func getCurrentQueryResult() -> QueryResult? {
+        guard let result = queryResult,
+              let columns = queryResult?.columns else { return nil }
+
+        // Create a new result without the hidden rowid column
+        let startColumn = primaryKeyColumns.isEmpty ? 1 : 0
+        let visibleColumns = Array(columns[startColumn...])
+        var visibleRows: [[Any?]] = []
+
+        for row in result.rows {
+            visibleRows.append(Array(row[startColumn...]))
+        }
+
+        return QueryResult(columns: visibleColumns, rows: visibleRows, error: nil)
+    }
+
+    func getCurrentTableName() -> String? {
+        return currentTable?.name
+    }
+
     private func checkEditability(tableInfo: TableInfo) {
         guard let connection = DatabaseManager.shared.connections.first(where: { $0.isConnected() }) else {
             canEdit = false

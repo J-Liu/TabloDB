@@ -94,4 +94,34 @@ class MainWindowController: NSWindowController {
         sidebarController.refresh()
         contentController.refresh()
     }
+
+    func exportCurrentTable() {
+        guard let result = contentController.getCurrentQueryResult(),
+              let tableName = contentController.getCurrentTableName() else {
+            let alert = NSAlert()
+            alert.messageText = "No Data"
+            alert.informativeText = "Please select a table to export."
+            alert.alertStyle = .informational
+            alert.runModal()
+            return
+        }
+
+        let savePanel = NSSavePanel()
+        savePanel.title = "Export as CSV"
+        savePanel.allowedContentTypes = [.init(filenameExtension: "csv") ?? .data]
+        savePanel.nameFieldStringValue = "\(tableName).csv"
+
+        savePanel.begin { response in
+            guard response == .OK, let url = savePanel.url else { return }
+            do {
+                try CSVExporter.exportTableData(result: result, to: url)
+            } catch {
+                let alert = NSAlert()
+                alert.messageText = "Export Failed"
+                alert.informativeText = error.localizedDescription
+                alert.alertStyle = .critical
+                alert.runModal()
+            }
+        }
+    }
 }

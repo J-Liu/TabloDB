@@ -49,6 +49,8 @@ class MenuController {
         fileMenu.addItem(recentMenuItem)
 
         fileMenu.addItem(NSMenuItem.separator())
+        fileMenu.addItem(NSMenuItem(title: "Export as CSV...", action: #selector(exportCSV), keyEquivalent: "e"))
+        fileMenu.addItem(NSMenuItem.separator())
         fileMenu.addItem(NSMenuItem(title: "Move to Trash", action: #selector(moveToTrash), keyEquivalent: ""))
 
         mainMenu.addItem(fileMenuItem)
@@ -151,6 +153,10 @@ class MenuController {
 
     @objc func refresh() {
         appDelegate.refresh()
+    }
+
+    @objc func exportCSV() {
+        appDelegate.exportCSV()
     }
 }
 
