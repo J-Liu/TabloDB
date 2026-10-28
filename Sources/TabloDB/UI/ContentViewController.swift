@@ -6,28 +6,74 @@ import AppKit
 class ContentViewController: NSViewController {
     private var scrollView: NSScrollView!
     private var tableView: NSTableView!
+    private var toolbarView: NSView!
+    private var pageInfoLabel: NSTextField!
+    private var prevButton: NSButton!
+    private var nextButton: NSButton!
+
     private var currentTable: TableInfo?
     private var currentConnection: DatabaseConnection?
     private var queryResult: QueryResult?
     private var pageSize = 100
     private var currentOffset = 0
+    private var totalRowCount: Int?
 
     override func loadView() {
         view = NSView()
 
+        let containerStack = NSStackView()
+        containerStack.orientation = .vertical
+        containerStack.translatesAutoresizingMaskIntoConstraints = false
+        containerStack.spacing = 0
+        view.addSubview(containerStack)
+
+        NSLayoutConstraint.activate([
+            containerStack.topAnchor.constraint(equalTo: view.topAnchor),
+            containerStack.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+            containerStack.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+            containerStack.bottomAnchor.constraint(equalTo: view.bottomAnchor)
+        ])
+
+        // Toolbar
+        toolbarView = NSView()
+        toolbarView.translatesAutoresizingMaskIntoConstraints = false
+        toolbarView.wantsLayer = true
+
+        let toolbarStack = NSStackView()
+        toolbarStack.orientation = .horizontal
+        toolbarStack.translatesAutoresizingMaskIntoConstraints = false
+        toolbarStack.spacing = 8
+        toolbarStack.edgeInsets = NSEdgeInsets(top: 4, left: 8, bottom: 4, right: 8)
+        toolbarView.addSubview(toolbarStack)
+
+        NSLayoutConstraint.activate([
+            toolbarStack.topAnchor.constraint(equalTo: toolbarView.topAnchor),
+            toolbarStack.leadingAnchor.constraint(equalTo: toolbarView.leadingAnchor),
+            toolbarStack.trailingAnchor.constraint(equalTo: toolbarView.trailingAnchor),
+            toolbarStack.bottomAnchor.constraint(equalTo: toolbarView.bottomAnchor)
+        ])
+
+        prevButton = NSButton(title: "Previous", target: self, action: #selector(previousPage))
+        prevButton.isEnabled = false
+
+        nextButton = NSButton(title: "Next", target: self, action: #selector(nextPage))
+        nextButton.isEnabled = false
+
+        pageInfoLabel = NSTextField(labelWithString: "No data")
+        pageInfoLabel.alignment = .center
+
+        toolbarStack.addArrangedSubview(prevButton)
+        toolbarStack.addArrangedSubview(pageInfoLabel)
+        toolbarStack.addArrangedSubview(nextButton)
+
+        containerStack.addArrangedSubview(toolbarView)
+
+        // Data grid
         scrollView = NSScrollView()
         scrollView.hasVerticalScroller = true
         scrollView.hasHorizontalScroller = true
         scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.borderType = .bezelBorder
-        view.addSubview(scrollView)
-
-        NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: view.topAnchor),
-            scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
-            scrollView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
-            scrollView.bottomAnchor.constraint(equalTo: view.bottomAnchor)
-        ])
+        scrollView.borderType = .noBorder
 
         tableView = NSTableView()
         tableView.style = .fullWidth
@@ -42,6 +88,12 @@ class ContentViewController: NSViewController {
         tableView.delegate = self
 
         scrollView.documentView = tableView
+        containerStack.addArrangedSubview(scrollView)
+
+        // Set toolbar height
+        NSLayoutConstraint.activate([
+            toolbarView.heightAnchor.constraint(equalToConstant: 32)
+        ])
     }
 
     override func viewDidLoad() {
@@ -60,23 +112,42 @@ class ContentViewController: NSViewController {
         }
 
         loadTableData(tableInfo: tableInfo)
+        loadRowCount(tableInfo: tableInfo)
     }
 
     func refresh() {
         if let table = currentTable {
             loadTableData(tableInfo: table)
+            loadRowCount(tableInfo: table)
         }
     }
 
     private func loadTableData(tableInfo: TableInfo) {
-        // Find connection for this table
         if let connection = DatabaseManager.shared.connections.first(where: { $0.isConnected() }) {
             currentConnection = connection
 
             let sql = "SELECT * FROM \(tableInfo.name) LIMIT \(pageSize) OFFSET \(currentOffset)"
             if let result = try? connection.executeQuery(sql) {
                 queryResult = result
-                updateTableView()
+                DispatchQueue.main.async {
+                    self.updateTableView()
+                    self.updatePageInfo()
+                }
+            }
+        }
+    }
+
+    private func loadRowCount(tableInfo: TableInfo) {
+        guard let connection = currentConnection else { return }
+
+        DispatchQueue.global().async {
+            let sql = "SELECT COUNT(*) FROM \(tableInfo.name)"
+            if let result = try? connection.executeQuery(sql),
+               let count = result.rows.first?.first as? Int64 {
+                DispatchQueue.main.async {
+                    self.totalRowCount = Int(count)
+                    self.updatePageInfo()
+                }
             }
         }
     }
@@ -99,12 +170,50 @@ class ContentViewController: NSViewController {
         tableView.reloadData()
     }
 
+    private func updatePageInfo() {
+        guard queryResult != nil else {
+            pageInfoLabel.stringValue = "No data"
+            prevButton.isEnabled = false
+            nextButton.isEnabled = false
+            return
+        }
+
+        let startRow = currentOffset + 1
+        let endRow = currentOffset + (queryResult?.rows.count ?? 0)
+
+        if let total = totalRowCount {
+            pageInfoLabel.stringValue = "\(startRow)-\(endRow) of \(total)"
+        } else {
+            pageInfoLabel.stringValue = "\(startRow)-\(endRow)"
+        }
+
+        prevButton.isEnabled = currentOffset > 0
+        nextButton.isEnabled = (totalRowCount == nil) || (endRow < totalRowCount!)
+    }
+
     private func showEmptyState() {
         while tableView.tableColumns.count > 0 {
             tableView.removeTableColumn(tableView.tableColumns[0])
         }
         queryResult = nil
+        totalRowCount = nil
         tableView.reloadData()
+        updatePageInfo()
+    }
+
+    @objc private func previousPage() {
+        guard currentOffset > 0 else { return }
+        currentOffset = max(0, currentOffset - pageSize)
+        if let table = currentTable {
+            loadTableData(tableInfo: table)
+        }
+    }
+
+    @objc private func nextPage() {
+        currentOffset += pageSize
+        if let table = currentTable {
+            loadTableData(tableInfo: table)
+        }
     }
 }
 
