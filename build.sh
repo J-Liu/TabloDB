@@ -33,6 +33,7 @@ echo "==> Assembling ${APP_BUNDLE}..."
 rm -rf "$APP_BUNDLE"
 mkdir -p "${APP_BUNDLE}/Contents/MacOS"
 mkdir -p "${APP_BUNDLE}/Contents/Resources"
+mkdir -p "${APP_BUNDLE}/Contents/Frameworks"
 
 # Copy executable
 cp "$BINARY" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}"
@@ -48,6 +49,16 @@ fi
 if [ -f "${ICON_DIR}/${APP_NAME}.icns" ]; then
     cp "${ICON_DIR}/${APP_NAME}.icns" "${APP_BUNDLE}/Contents/Resources/${APP_NAME}.icns"
 fi
+
+# Copy Sparkle.framework
+SPARKLE_FRAMEWORK="${ROOT_DIR}/.build/artifacts/sparkle/Sparkle/Sparkle.xcframework/macos-arm64_x86_64/Sparkle.framework"
+if [ -d "$SPARKLE_FRAMEWORK" ]; then
+    echo "==> Copying Sparkle.framework..."
+    cp -R "$SPARKLE_FRAMEWORK" "${APP_BUNDLE}/Contents/Frameworks/"
+fi
+
+# Add rpath for frameworks
+install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
 
 # 3. Sign with local certificate (stable identity for TCC)
 echo "==> Signing..."
