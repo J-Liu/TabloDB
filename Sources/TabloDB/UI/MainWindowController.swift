@@ -160,4 +160,8 @@ class MainWindowController: NSWindowController {
             }
         }
     }
+
+    func copySelection() {
+        contentController.copySelectedCells()
+    }
 }

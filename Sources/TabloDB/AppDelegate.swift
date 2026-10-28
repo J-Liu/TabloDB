@@ -101,6 +101,10 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         windowController?.importCSV()
     }
 
+    func copySelection() {
+        windowController?.copySelection()
+    }
+
     func showError(message: String) {
         let alert = NSAlert()
         alert.messageText = "Error"

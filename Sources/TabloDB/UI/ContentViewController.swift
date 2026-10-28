@@ -519,6 +519,42 @@ extension ContentViewController: NSTableViewDelegate {
             loadTableData(tableInfo: table)
         }
     }
+
+    func copySelectedCells() {
+        guard let result = queryResult else { return }
+
+        let selectedRows = tableView.selectedRowIndexes
+        let selectedColumns = tableView.selectedColumnIndexes
+
+        if selectedRows.isEmpty || selectedColumns.isEmpty {
+            return
+        }
+
+        var copiedText = ""
+        let sortedRows = selectedRows.sorted()
+        let sortedColumns = selectedColumns.sorted()
+
+        for (rowIndex, row) in sortedRows.enumerated() {
+            guard row < result.rows.count else { continue }
+            for (colIndex, col) in sortedColumns.enumerated() {
+                guard col < result.rows[row].count else { continue }
+                let value = result.rows[row][col]
+                if let v = value {
+                    copiedText += String(describing: v)
+                }
+                if colIndex < sortedColumns.count - 1 {
+                    copiedText += "\t"
+                }
+            }
+            if rowIndex < sortedRows.count - 1 {
+                copiedText += "\n"
+            }
+        }
+
+        let pasteboard = NSPasteboard.general
+        pasteboard.clearContents()
+        pasteboard.setString(copiedText, forType: .string)
+    }
 }
 
 class EditableCellView: NSTableCellView {
