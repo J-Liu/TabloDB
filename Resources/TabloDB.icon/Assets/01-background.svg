@@ -1,9 +1,12 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <rect width="1024" height="1024" fill="#1C1917"/>
+
   <defs>
-    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-      <stop offset="0%" stop-color="#FFE4CB"/>
-      <stop offset="100%" stop-color="#FFC99E"/>
-    </linearGradient>
+    <radialGradient id="glow" cx="50%" cy="50%" r="60%">
+      <stop offset="0%"   stop-color="#F97316" stop-opacity="0.50"/>
+      <stop offset="50%"  stop-color="#EA580C" stop-opacity="0.20"/>
+      <stop offset="100%" stop-color="#EA580C" stop-opacity="0"/>
+    </radialGradient>
   </defs>
-  <rect x="0" y="0" width="1024" height="1024" rx="224" ry="224" fill="url(#bgGradient)"/>
+  <rect width="1024" height="1024" fill="url(#glow)"/>
 </svg>
