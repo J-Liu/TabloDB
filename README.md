@@ -4,7 +4,7 @@ A lightweight native macOS GUI for browsing, editing, and managing SQLite, DuckD
 
 ## Requirements
 
-- macOS 14.0 or later
+- macOS 13.0 or later
 - Xcode Command Line Tools
 
 ## Building
@@ -23,7 +23,7 @@ swift run TabloDB
 
 - **Commit Model**: Immediate commit - each edit is saved to the database immediately.
 - **Delete Database**: Moves to Trash (user can recover if needed).
-- **Minimum macOS Version**: macOS 14.0
+- **Minimum macOS Version**: macOS 13.0
 
 ## License
 

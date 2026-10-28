@@ -6,7 +6,7 @@ import PackageDescription
 let package = Package(
     name: "TabloDB",
     platforms: [
-        .macOS(.v14)
+        .macOS(.v13)
     ],
     products: [
         .executable(name: "TabloDB", targets: ["TabloDB"])
