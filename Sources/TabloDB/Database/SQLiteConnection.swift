@@ -102,12 +102,13 @@ class SQLiteConnection: DatabaseConnection {
         var rows: [[Any?]] = []
 
         guard sqlite3_prepare_v2(db, sql, -1, &stmt, nil) == SQLITE_OK else {
-            let errorMsg = String(cString: sqlite3_errmsg(db))
-            return QueryResult(columns: [], rows: [], error: errorMsg)
+            let rawError = String(cString: sqlite3_errmsg(db))
+            let friendlyError = ErrorMessageMapper.mapSQLError(rawError)
+            return QueryResult(columns: [], rows: [], error: friendlyError)
         }
 
         guard let statement = stmt else {
-            return QueryResult(columns: [], rows: [], error: "Failed to prepare statement")
+            return QueryResult(columns: [], rows: [], error: "Failed to prepare SQL statement. Please check your query syntax.")
         }
 
         let columnCount = sqlite3_column_count(statement)
@@ -156,10 +157,12 @@ class SQLiteConnection: DatabaseConnection {
         }
 
         var errMsg: UnsafeMutablePointer<CChar>?
-        if sqlite3_exec(db, sql, nil, nil, &errMsg) != SQLITE_OK {
-            let error = String(cString: errMsg!)
+        let result = sqlite3_exec(db, sql, nil, nil, &errMsg)
+        if result != SQLITE_OK {
+            let rawError = errMsg.map { String(cString: $0) } ?? "Unknown error"
             sqlite3_free(errMsg)
-            throw DatabaseError.queryFailed(error)
+            let friendlyError = ErrorMessageMapper.mapSQLError(rawError)
+            throw DatabaseError.queryFailed(friendlyError)
         }
     }
 
