@@ -7,6 +7,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindow: NSWindow?
     private var menuController: MenuController?
     private var windowController: MainWindowController?
+    private var settingsWindowController: SettingsWindowController?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         menuController = MenuController(appDelegate: self)
@@ -103,6 +104,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func copySelection() {
         windowController?.copySelection()
+    }
+
+    func showSettings() {
+        if settingsWindowController == nil {
+            settingsWindowController = SettingsWindowController()
+        }
+        settingsWindowController?.showWindow(nil)
+        settingsWindowController?.window?.makeKeyAndOrderFront(nil)
     }
 
     func showError(message: String) {

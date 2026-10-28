@@ -20,7 +20,7 @@ class MenuController {
         appMenuItem.submenu = appMenu
 
         let appName = ProcessInfo.processInfo.processName
-        appMenu.addItem(NSMenuItem(title: "About \(appName)", action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: ""))
+        appMenu.addItem(NSMenuItem(title: "About \(appName)", action: #selector(showAbout), keyEquivalent: ""))
         appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(NSMenuItem(title: "Hide \(appName)", action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
         appMenu.addItem(NSMenuItem(title: "Hide Others", action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h").withKeyModifier(.option))
@@ -166,6 +166,10 @@ class MenuController {
 
     @objc func copySelection() {
         appDelegate.copySelection()
+    }
+
+    @objc func showAbout() {
+        appDelegate.showSettings()
     }
 }
 
