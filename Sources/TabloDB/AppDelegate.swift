@@ -52,7 +52,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
-        return true
+        let keepRunning = UserDefaults.standard.object(forKey: "quitOnClose") as? Bool ?? true
+        return !keepRunning
     }
 
     func application(_ sender: NSApplication, openFile filename: String) -> Bool {

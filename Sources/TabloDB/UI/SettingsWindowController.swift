@@ -10,12 +10,14 @@ class SettingsWindowController: NSWindowController {
     private var aboutTab: NSView!
     private var languagePopup: NSPopUpButton!
     private var updateCheckPopup: NSPopUpButton!
+    private var quitOnCloseCheckbox: NSButton!
     private var versionLabel: NSTextField!
     private var copyrightLabel: NSTextField!
     private var descriptionLabel: NSTextField!
     private var nameLabel: NSTextField!
     private var githubButton: NSButton!
     private var checkUpdatesButton: NSButton!
+    private var aboutCheckUpdatesButton: NSButton!
 
     private let labelWidth: CGFloat = 120
     private let controlWidth: CGFloat = 200
@@ -183,6 +185,11 @@ class SettingsWindowController: NSWindowController {
         updateCheckRow.spacing = 8
         stack.addArrangedSubview(makeRow(label: L("settings.updateCheck"), control: updateCheckRow))
 
+        let quitOnClose = UserDefaults.standard.object(forKey: "quitOnClose") as? Bool ?? true
+        quitOnCloseCheckbox = NSButton(checkboxWithTitle: "", target: self, action: #selector(quitOnCloseChanged(_:)))
+        quitOnCloseCheckbox.state = quitOnClose ? .on : .off
+        stack.addArrangedSubview(makeRow(label: L("settings.quitOnClose"), control: quitOnCloseCheckbox))
+
         return wrapInTopAlignedContainer(stack)
     }
 
@@ -237,6 +244,11 @@ class SettingsWindowController: NSWindowController {
         githubButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(githubButton)
 
+        aboutCheckUpdatesButton = NSButton(title: L("settings.about.checkUpdates"), target: self, action: #selector(checkForUpdatesNow))
+        aboutCheckUpdatesButton.bezelStyle = .rounded
+        aboutCheckUpdatesButton.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(aboutCheckUpdatesButton)
+
         NSLayoutConstraint.activate([
             appIcon.topAnchor.constraint(equalTo: container.topAnchor, constant: 40),
             appIcon.centerXAnchor.constraint(equalTo: container.centerXAnchor),
@@ -257,7 +269,10 @@ class SettingsWindowController: NSWindowController {
 
             githubButton.topAnchor.constraint(equalTo: descriptionLabel.bottomAnchor, constant: 24),
             githubButton.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            githubButton.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor, constant: -20)
+
+            aboutCheckUpdatesButton.topAnchor.constraint(equalTo: githubButton.bottomAnchor, constant: 12),
+            aboutCheckUpdatesButton.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            aboutCheckUpdatesButton.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor, constant: -20)
         ])
 
         return container
@@ -304,6 +319,11 @@ class SettingsWindowController: NSWindowController {
         if let appDelegate = NSApp.delegate as? AppDelegate {
             appDelegate.updaterController.checkForUpdates(nil)
         }
+    }
+
+    @objc private func quitOnCloseChanged(_ sender: NSButton) {
+        let shouldQuit = sender.state == .off
+        UserDefaults.standard.set(!shouldQuit, forKey: "quitOnClose")
     }
 
     @objc private func openGitHub() {

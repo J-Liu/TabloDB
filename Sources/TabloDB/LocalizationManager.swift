@@ -95,9 +95,11 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "settings.updateCheck.daily": "Daily",
         "settings.updateCheck.weekly": "Weekly",
         "settings.updateCheck.monthly": "Monthly",
+        "settings.quitOnClose": "Keep running after closing window:",
         "settings.about.version": "Version",
         "settings.about.copyright": "Copyright © 2026 Jia Liu",
         "settings.about.description": "A native macOS database GUI for SQLite and DuckDB.",
+        "settings.about.checkUpdates": "Check for Updates",
 
         // Sidebar
         "sidebar.tables": "Tables",
@@ -210,9 +212,11 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "settings.updateCheck.daily": "每天",
         "settings.updateCheck.weekly": "每周",
         "settings.updateCheck.monthly": "每月",
+        "settings.quitOnClose": "关闭窗口不退出：",
         "settings.about.version": "版本",
         "settings.about.copyright": "版权所有 © 2026 Jia Liu",
         "settings.about.description": "原生 macOS 数据库 GUI，支持 SQLite 和 DuckDB。",
+        "settings.about.checkUpdates": "检查更新",
 
         // Sidebar
         "sidebar.tables": "数据表",
@@ -325,9 +329,11 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "settings.updateCheck.daily": "每天",
         "settings.updateCheck.weekly": "每週",
         "settings.updateCheck.monthly": "每月",
+        "settings.quitOnClose": "關閉視窗不結束：",
         "settings.about.version": "版本",
         "settings.about.copyright": "版權所有 © 2026 Jia Liu",
         "settings.about.description": "原生 macOS 資料庫 GUI，支援 SQLite 和 DuckDB。",
+        "settings.about.checkUpdates": "檢查更新",
 
         // Sidebar
         "sidebar.tables": "資料表",
