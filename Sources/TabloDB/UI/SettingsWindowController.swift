@@ -2,26 +2,29 @@
 // Copyright © 2026 Jia Liu
 
 import AppKit
+import Sparkle
 
 class SettingsWindowController: NSWindowController {
     private var tabView: NSTabView!
     private var generalTab: NSView!
     private var aboutTab: NSView!
     private var languagePopup: NSPopUpButton!
+    private var updateCheckPopup: NSPopUpButton!
     private var versionLabel: NSTextField!
     private var copyrightLabel: NSTextField!
     private var descriptionLabel: NSTextField!
     private var nameLabel: NSTextField!
     private var githubButton: NSButton!
+    private var checkUpdatesButton: NSButton!
 
-    private let labelWidth: CGFloat = 100
+    private let labelWidth: CGFloat = 120
     private let controlWidth: CGFloat = 200
     private let rowSpacing: CGFloat = 16
 
     init() {
         let screenFrame = NSScreen.main?.visibleFrame ?? .zero
-        let width: CGFloat = 500
-        let height: CGFloat = 400
+        let width: CGFloat = 550
+        let height: CGFloat = 450
         let x = screenFrame.midX - width / 2
         let y = screenFrame.midY - height / 2
         let frame = NSRect(x: x, y: y, width: width, height: height)
@@ -33,7 +36,7 @@ class SettingsWindowController: NSWindowController {
             defer: false
         )
         window.title = L("settings.title")
-        window.minSize = NSSize(width: 400, height: 300)
+        window.minSize = NSSize(width: 450, height: 350)
 
         super.init(window: window)
 
@@ -144,6 +147,42 @@ class SettingsWindowController: NSWindowController {
         languagePopup.widthAnchor.constraint(equalToConstant: controlWidth).isActive = true
         stack.addArrangedSubview(makeRow(label: L("settings.language"), control: languagePopup))
 
+        updateCheckPopup = NSPopUpButton()
+        let frequencies: [(key: String, interval: TimeInterval)] = [
+            ("settings.updateCheck.atStartup", 0),
+            ("settings.updateCheck.daily", 86400),
+            ("settings.updateCheck.weekly", 604800),
+            ("settings.updateCheck.monthly", 2592000),
+            ("settings.updateCheck.never", -1)
+        ]
+        for freq in frequencies {
+            updateCheckPopup.addItem(withTitle: L(freq.key))
+            updateCheckPopup.lastItem?.representedObject = freq.interval
+        }
+        let savedInterval = UserDefaults.standard.double(forKey: "settings.updateCheckInterval")
+        let selectedIndex: Int
+        if savedInterval < 0 {
+            selectedIndex = 4
+        } else if savedInterval == 0 {
+            selectedIndex = 0
+        } else if savedInterval <= 86400 {
+            selectedIndex = 1
+        } else if savedInterval <= 604800 {
+            selectedIndex = 2
+        } else {
+            selectedIndex = 3
+        }
+        updateCheckPopup.selectItem(at: selectedIndex)
+        updateCheckPopup.target = self
+        updateCheckPopup.action = #selector(updateCheckFrequencyChanged(_:))
+        updateCheckPopup.widthAnchor.constraint(equalToConstant: controlWidth).isActive = true
+
+        checkUpdatesButton = NSButton(title: L("settings.updateCheck.now"), target: self, action: #selector(checkForUpdatesNow))
+        let updateCheckRow = NSStackView(views: [updateCheckPopup, checkUpdatesButton])
+        updateCheckRow.orientation = .horizontal
+        updateCheckRow.spacing = 8
+        stack.addArrangedSubview(makeRow(label: L("settings.updateCheck"), control: updateCheckRow))
+
         return wrapInTopAlignedContainer(stack)
     }
 
@@ -242,6 +281,29 @@ class SettingsWindowController: NSWindowController {
     @objc private func languageChanged(_ sender: NSPopUpButton) {
         guard let selected = sender.selectedItem?.representedObject as? AppLanguage else { return }
         LocalizationManager.shared.currentLanguage = selected
+    }
+
+    @objc private func updateCheckFrequencyChanged(_ sender: NSPopUpButton) {
+        guard let interval = sender.selectedItem?.representedObject as? TimeInterval else { return }
+        UserDefaults.standard.set(interval, forKey: "settings.updateCheckInterval")
+
+        if let appDelegate = NSApp.delegate as? AppDelegate {
+            let updater = appDelegate.updaterController.updater
+            if interval < 0 {
+                updater.automaticallyChecksForUpdates = false
+            } else if interval == 0 {
+                updater.automaticallyChecksForUpdates = false
+            } else {
+                updater.automaticallyChecksForUpdates = true
+                updater.updateCheckInterval = interval
+            }
+        }
+    }
+
+    @objc private func checkForUpdatesNow() {
+        if let appDelegate = NSApp.delegate as? AppDelegate {
+            appDelegate.updaterController.checkForUpdates(nil)
+        }
     }
 
     @objc private func openGitHub() {

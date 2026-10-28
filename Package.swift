@@ -1,5 +1,7 @@
 // swift-tools-version: 5.9
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+
+// SPDX-License-Identifier: AGPL-3.0-or-later
+// Copyright © 2026 Jia Liu
 
 import PackageDescription
 
@@ -12,13 +14,15 @@ let package = Package(
         .executable(name: "TabloDB", targets: ["TabloDB"])
     ],
     dependencies: [
-        .package(url: "https://github.com/duckdb/duckdb-swift", from: "1.1.3")
+        .package(url: "https://github.com/duckdb/duckdb-swift", from: "1.1.3"),
+        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.10.0")
     ],
     targets: [
         .executableTarget(
             name: "TabloDB",
             dependencies: [
-                .product(name: "DuckDB", package: "duckdb-swift")
+                .product(name: "DuckDB", package: "duckdb-swift"),
+                .product(name: "Sparkle", package: "Sparkle")
             ],
             linkerSettings: [
                 .linkedLibrary("sqlite3")

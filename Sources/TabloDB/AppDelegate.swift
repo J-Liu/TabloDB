@@ -2,6 +2,7 @@
 // Copyright © 2026 Jia Liu
 
 import AppKit
+import Sparkle
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindow: NSWindow?
@@ -9,12 +10,45 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     private var windowController: MainWindowController?
     private var settingsWindowController: SettingsWindowController?
 
+    lazy var updaterController = SPUStandardUpdaterController(
+        startingUpdater: true,
+        updaterDelegate: nil,
+        userDriverDelegate: self
+    )
+
     func applicationDidFinishLaunching(_ notification: Notification) {
+        configureUpdateCheck()
         menuController = MenuController(appDelegate: self)
         windowController = MainWindowController()
         windowController?.showWindow(nil)
         mainWindow = windowController?.window
         menuController?.updateRecentMenu()
+    }
+
+    private func configureUpdateCheck() {
+        let savedInterval = UserDefaults.standard.double(forKey: "settings.updateCheckInterval")
+        let interval: TimeInterval
+        if !UserDefaults.standard.bool(forKey: "settings.updateCheckIntervalSet") {
+            interval = 604800
+        } else {
+            interval = savedInterval
+        }
+
+        let updater = updaterController.updater
+        if interval < 0 {
+            updater.automaticallyChecksForUpdates = false
+        } else if interval == 0 {
+            updater.automaticallyChecksForUpdates = false
+            updater.checkForUpdatesInBackground()
+        } else {
+            updater.automaticallyChecksForUpdates = true
+            updater.updateCheckInterval = interval
+        }
+
+        if !UserDefaults.standard.bool(forKey: "settings.updateCheckIntervalSet") {
+            UserDefaults.standard.set(true, forKey: "settings.updateCheckIntervalSet")
+            UserDefaults.standard.set(interval, forKey: "settings.updateCheckInterval")
+        }
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -38,7 +72,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func createNewDatabase(type: DatabaseType) {
         let savePanel = NSSavePanel()
-        savePanel.title = "New \(type == .sqlite ? "SQLite" : "DuckDB") Database"
+        savePanel.title = L("dialog.new\(type == .sqlite ? "SQLite" : "DuckDB")")
         savePanel.allowedContentTypes = [.init(filenameExtension: type == .sqlite ? "sqlite" : "duckdb") ?? .data]
         savePanel.nameFieldStringValue = "Untitled.\(type == .sqlite ? "sqlite" : "duckdb")"
 
@@ -56,7 +90,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func openDatabase() {
         let openPanel = NSOpenPanel()
-        openPanel.title = "Open Database"
+        openPanel.title = L("dialog.open")
         openPanel.allowsMultipleSelection = false
         openPanel.canChooseDirectories = false
         openPanel.allowedContentTypes = [
@@ -114,11 +148,21 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         settingsWindowController?.window?.makeKeyAndOrderFront(nil)
     }
 
+    func checkForUpdates() {
+        updaterController.checkForUpdates(nil)
+    }
+
     func showError(message: String) {
         let alert = NSAlert()
-        alert.messageText = "Error"
+        alert.messageText = L("table.error")
         alert.informativeText = message
         alert.alertStyle = .critical
         alert.runModal()
+    }
+}
+
+extension AppDelegate: SPUStandardUserDriverDelegate {
+    var supportsGentleScheduledUpdateReminders: Bool {
+        return true
     }
 }

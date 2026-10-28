@@ -31,6 +31,8 @@ class MenuController {
 
         appMenu.addItem(NSMenuItem(title: L("menu.about", appName), action: #selector(showAbout), keyEquivalent: ""))
         appMenu.addItem(NSMenuItem.separator())
+        appMenu.addItem(NSMenuItem(title: L("menu.checkForUpdates"), action: #selector(checkForUpdates), keyEquivalent: ""))
+        appMenu.addItem(NSMenuItem.separator())
         appMenu.addItem(NSMenuItem(title: L("menu.hide", appName), action: #selector(NSApplication.hide(_:)), keyEquivalent: "h"))
         appMenu.addItem(NSMenuItem(title: L("menu.hideOthers"), action: #selector(NSApplication.hideOtherApplications(_:)), keyEquivalent: "h").withKeyModifier(.option))
         appMenu.addItem(NSMenuItem(title: L("menu.showAll"), action: #selector(NSApplication.unhideAllApplications(_:)), keyEquivalent: ""))
@@ -178,6 +180,10 @@ class MenuController {
 
     @objc func showAbout() {
         appDelegate.showSettings()
+    }
+
+    @objc func checkForUpdates() {
+        appDelegate.checkForUpdates()
     }
 }
 
