@@ -19,7 +19,7 @@ class SettingsWindowController: NSWindowController {
     private var checkUpdatesButton: NSButton!
     private var aboutCheckUpdatesButton: NSButton!
 
-    private let labelWidth: CGFloat = 120
+    private let labelWidth: CGFloat = 180
     private let controlWidth: CGFloat = 200
     private let rowSpacing: CGFloat = 16
 
