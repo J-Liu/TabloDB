@@ -13,6 +13,7 @@ class SettingsWindowController: NSWindowController {
     private var quitOnCloseCheckbox: NSButton!
     private var logEnabledCheckbox: NSButton!
     private var logPathField: NSTextField!
+    private var editConfirmCheckbox: NSButton!
     private var versionLabel: NSTextField!
     private var copyrightLabel: NSTextField!
     private var descriptionLabel: NSTextField!
@@ -208,6 +209,12 @@ class SettingsWindowController: NSWindowController {
         logRow.spacing = 8
         stack.addArrangedSubview(makeRow(label: L("settings.logEnabled"), control: logRow))
 
+        // Edit confirmation
+        let skipEditConfirm = UserDefaults.standard.bool(forKey: "settings.skipEditConfirm")
+        editConfirmCheckbox = NSButton(checkboxWithTitle: "", target: self, action: #selector(editConfirmChanged(_:)))
+        editConfirmCheckbox.state = skipEditConfirm ? .on : .off
+        stack.addArrangedSubview(makeRow(label: L("settings.skipEditConfirm"), control: editConfirmCheckbox))
+
         return wrapInTopAlignedContainer(stack)
     }
 
@@ -344,6 +351,11 @@ class SettingsWindowController: NSWindowController {
         let enabled = sender.state == .on
         LogManager.shared.isEnabled = enabled
         logPathField.stringValue = LogManager.shared.logPath
+    }
+
+    @objc private func editConfirmChanged(_ sender: NSButton) {
+        let skipConfirm = sender.state == .on
+        UserDefaults.standard.set(skipConfirm, forKey: "settings.skipEditConfirm")
     }
 
     @objc private func openGitHub() {
