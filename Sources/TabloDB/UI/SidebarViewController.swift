@@ -157,9 +157,7 @@ class SidebarViewController: NSViewController {
 
             // Expand the database item by default
             DispatchQueue.main.async {
-                if let root = self.rootItem {
-                    self.outlineView.expandItem(root, expandChildren: false)
-                }
+                self.outlineView.expandItem(nil, expandChildren: true)
             }
         } catch {
             rootItem = nil
