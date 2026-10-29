@@ -304,9 +304,32 @@ class ContentViewController: NSViewController {
 
         tableView.reloadData()
 
+        // Restore sort indicator
+        restoreSortIndicator()
+
         // Auto-size columns based on content
         DispatchQueue.main.async {
             self.autoSizeColumns()
+        }
+    }
+
+    private func restoreSortIndicator() {
+        guard let result = queryResult, let sortColumn = sortColumn else { return }
+
+        for (index, columnName) in result.columns.enumerated() {
+            if columnName == sortColumn {
+                let column = tableView.tableColumns.first { $0.identifier.rawValue == "col_\(index)" }
+                if let column = column {
+                    let sortImage: NSImage?
+                    if sortAscending {
+                        sortImage = NSImage(systemSymbolName: "chevron.up", accessibilityDescription: "Ascending")
+                    } else {
+                        sortImage = NSImage(systemSymbolName: "chevron.down", accessibilityDescription: "Descending")
+                    }
+                    tableView.setIndicatorImage(sortImage, in: column)
+                }
+                break
+            }
         }
     }
 
@@ -399,11 +422,23 @@ class ContentViewController: NSViewController {
     }
 
     @objc private func tableViewDoubleClicked() {
-        guard isOverviewMode else { return }
-        let row = tableView.clickedRow
-        guard row >= 0 && row < overviewTables.count else { return }
-        let tableInfo = overviewTables[row]
-        onTableDoubleClicked?(tableInfo)
+        if isOverviewMode {
+            let row = tableView.clickedRow
+            guard row >= 0 && row < overviewTables.count else { return }
+            let tableInfo = overviewTables[row]
+            onTableDoubleClicked?(tableInfo)
+        } else {
+            // In table mode, start editing the clicked cell
+            let row = tableView.clickedRow
+            let column = tableView.clickedColumn
+            guard row >= 0 && column >= 0 else { return }
+            guard canEdit else { return }
+
+            // Get the cell view and start editing
+            if let cellView = tableView.view(atColumn: column, row: row, makeIfNecessary: false) as? EditableCellView {
+                cellView.startEditingFromTable()
+            }
+        }
     }
 
     @objc private func previousPage() {
@@ -790,6 +825,10 @@ class EditableCellView: NSTableCellView, NSTextFieldDelegate {
         valueLabel.isHidden = true
         editField.isHidden = false
         window?.makeFirstResponder(editField)
+    }
+
+    func startEditingFromTable() {
+        startEditing()
     }
 
     func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
