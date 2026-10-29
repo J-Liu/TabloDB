@@ -67,19 +67,59 @@ echo "==> Signing..."
 echo "==> Testing timestamp server..."
 curl -I --connect-timeout 10 https://timestamp.apple.com || echo "Warning: timestamp server unreachable"
 
-# Timeout wrapper for macOS (no gtimeout)
-timeout_cmd() {
-    perl -e 'alarm shift; exec @ARGV' "$@"
-}
-
+# Determine signing identity
+SIGN_IDENTITY=""
 if security find-identity -v -p codesigning | grep -q "Local Development Signing"; then
-    timeout_cmd 300 codesign --force --deep --sign "Local Development Signing" -v "$APP_BUNDLE"
-    echo "==> Signed ${APP_BUNDLE} using certificate"
+    SIGN_IDENTITY="Local Development Signing"
 else
-    # Fallback to ad-hoc signing
-    timeout_cmd 300 codesign --force --deep --sign - -v "$APP_BUNDLE"
-    echo "==> Signed ${APP_BUNDLE} by ad-hoc"
+    SIGN_IDENTITY="-"
 fi
+
+# Sign Sparkle.framework components from inside out
+SPARKLE_FW="${APP_BUNDLE}/Contents/Frameworks/Sparkle.framework"
+if [ -d "$SPARKLE_FW" ]; then
+    echo "==> Signing Sparkle.framework components..."
+
+    # Sign XPC services from inside out
+    for XPC in "$SPARKLE_FW/Versions/B/XPCServices/Installer.xpc" \
+               "$SPARKLE_FW/Versions/B/XPCServices/Downloader.xpc"; do
+        if [ -d "$XPC" ]; then
+            echo "  Signing: $XPC"
+            codesign --force --sign "$SIGN_IDENTITY" -v "$XPC"
+        fi
+    done
+
+    # Sign Updater.app
+    UPDATER_APP="$SPARKLE_FW/Versions/B/Updater.app"
+    if [ -d "$UPDATER_APP" ]; then
+        echo "  Signing: $UPDATER_APP"
+        codesign --force --sign "$SIGN_IDENTITY" -v "$UPDATER_APP"
+    fi
+
+    # Sign Autoupdate binary
+    AUTOUPDATE="$SPARKLE_FW/Versions/B/Autoupdate"
+    if [ -f "$AUTOUPDATE" ]; then
+        echo "  Signing: $AUTOUPDATE"
+        codesign --force --sign "$SIGN_IDENTITY" -v "$AUTOUPDATE"
+    fi
+
+    # Sign Sparkle library
+    SPARKLE_LIB="$SPARKLE_FW/Versions/B/Sparkle"
+    if [ -f "$SPARKLE_LIB" ]; then
+        echo "  Signing: $SPARKLE_LIB"
+        codesign --force --sign "$SIGN_IDENTITY" -v "$SPARKLE_LIB"
+    fi
+
+    # Sign the framework itself
+    echo "  Signing: Sparkle.framework"
+    codesign --force --sign "$SIGN_IDENTITY" -v "$SPARKLE_FW"
+fi
+
+# Sign the main app
+echo "==> Signing main app..."
+codesign --force --sign "$SIGN_IDENTITY" -v "$APP_BUNDLE"
+
+echo "==> Signed ${APP_BUNDLE}"
 
 # Verify signature
 echo "==> Verifying signature..."
