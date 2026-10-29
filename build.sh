@@ -63,9 +63,22 @@ install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP_BUNDLE}/Con
 # 3. Sign with local certificate (stable identity for TCC)
 echo "==> Signing..."
 
-# Test timestamp server connectivity
-echo "==> Testing timestamp server..."
-curl -I --connect-timeout 10 https://timestamp.apple.com || echo "Warning: timestamp server unreachable"
+# Find available timestamp server
+echo "==> Finding available timestamp server..."
+TIMESTAMP_SERVER=""
+for SERVER in "https://timestamp.apple.com" "http://timestamp.digicert.com" "http://timestamp.sectigo.com"; do
+    echo "  Testing: $SERVER"
+    if curl -I --connect-timeout 10 "$SERVER" 2>/dev/null | grep -q "HTTP"; then
+        TIMESTAMP_SERVER="$SERVER"
+        echo "  Using: $SERVER"
+        break
+    fi
+done
+
+if [ -z "$TIMESTAMP_SERVER" ]; then
+    echo "Error: No timestamp server reachable"
+    exit 1
+fi
 
 # Determine signing identity
 SIGN_IDENTITY=""
@@ -85,7 +98,7 @@ if [ -d "$SPARKLE_FW" ]; then
                "$SPARKLE_FW/Versions/B/XPCServices/Downloader.xpc"; do
         if [ -d "$XPC" ]; then
             echo "  Signing: $XPC"
-            codesign --force --sign "$SIGN_IDENTITY" -v "$XPC"
+            codesign --force --sign "$SIGN_IDENTITY" --timestamp "$TIMESTAMP_SERVER" -v "$XPC"
         fi
     done
 
@@ -93,31 +106,31 @@ if [ -d "$SPARKLE_FW" ]; then
     UPDATER_APP="$SPARKLE_FW/Versions/B/Updater.app"
     if [ -d "$UPDATER_APP" ]; then
         echo "  Signing: $UPDATER_APP"
-        codesign --force --sign "$SIGN_IDENTITY" -v "$UPDATER_APP"
+        codesign --force --sign "$SIGN_IDENTITY" --timestamp "$TIMESTAMP_SERVER" -v "$UPDATER_APP"
     fi
 
     # Sign Autoupdate binary
     AUTOUPDATE="$SPARKLE_FW/Versions/B/Autoupdate"
     if [ -f "$AUTOUPDATE" ]; then
         echo "  Signing: $AUTOUPDATE"
-        codesign --force --sign "$SIGN_IDENTITY" -v "$AUTOUPDATE"
+        codesign --force --sign "$SIGN_IDENTITY" --timestamp "$TIMESTAMP_SERVER" -v "$AUTOUPDATE"
     fi
 
     # Sign Sparkle library
     SPARKLE_LIB="$SPARKLE_FW/Versions/B/Sparkle"
     if [ -f "$SPARKLE_LIB" ]; then
         echo "  Signing: $SPARKLE_LIB"
-        codesign --force --sign "$SIGN_IDENTITY" -v "$SPARKLE_LIB"
+        codesign --force --sign "$SIGN_IDENTITY" --timestamp "$TIMESTAMP_SERVER" -v "$SPARKLE_LIB"
     fi
 
     # Sign the framework itself
     echo "  Signing: Sparkle.framework"
-    codesign --force --sign "$SIGN_IDENTITY" -v "$SPARKLE_FW"
+    codesign --force --sign "$SIGN_IDENTITY" --timestamp "$TIMESTAMP_SERVER" -v "$SPARKLE_FW"
 fi
 
 # Sign the main app
 echo "==> Signing main app..."
-codesign --force --sign "$SIGN_IDENTITY" -v "$APP_BUNDLE"
+codesign --force --sign "$SIGN_IDENTITY" --timestamp "$TIMESTAMP_SERVER" -v "$APP_BUNDLE"
 
 echo "==> Signed ${APP_BUNDLE}"
 
