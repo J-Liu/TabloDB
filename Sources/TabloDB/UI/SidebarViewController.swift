@@ -156,10 +156,9 @@ class SidebarViewController: NSViewController {
             outlineView.reloadData()
 
             // Expand the database item by default
-            if let root = rootItem {
-                let index = outlineView.row(forItem: root)
-                if index >= 0 {
-                    outlineView.expandItem(root)
+            DispatchQueue.main.async {
+                if let root = self.rootItem {
+                    self.outlineView.expandItem(root, expandChildren: false)
                 }
             }
         } catch {
@@ -386,6 +385,7 @@ extension SidebarViewController: NSOutlineViewDelegate {
 
             let imageView = NSImageView()
             imageView.translatesAutoresizingMaskIntoConstraints = false
+            imageView.imageScaling = .scaleProportionallyDown
             cell?.imageView = imageView
             cell?.addSubview(imageView)
 
@@ -407,8 +407,7 @@ extension SidebarViewController: NSOutlineViewDelegate {
 
                 textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 4),
                 textField.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -4),
-                textField.topAnchor.constraint(equalTo: cell!.topAnchor),
-                textField.bottomAnchor.constraint(equalTo: cell!.bottomAnchor)
+                textField.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
             ])
         }
 
