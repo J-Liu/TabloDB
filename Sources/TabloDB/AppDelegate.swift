@@ -4,6 +4,8 @@
 import AppKit
 import Sparkle
 
+private var pathInputKey: UInt8 = 0
+
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindow: NSWindow?
     private var menuController: MenuController?
@@ -109,6 +111,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .init(filenameExtension: "db") ?? .data,
             .init(filenameExtension: "duckdb") ?? .data
         ]
+        openPanel.accessoryView = createPathInputAccessoryView(for: openPanel)
 
         openPanel.begin { [weak self] response in
             guard response == .OK, let url = openPanel.url else { return }
@@ -126,6 +129,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .init(filenameExtension: "csv") ?? .data,
             .init(filenameExtension: "tsv") ?? .data
         ]
+        openPanel.accessoryView = createPathInputAccessoryView(for: openPanel)
 
         openPanel.begin { [weak self] response in
             guard response == .OK, let url = openPanel.url else { return }
@@ -139,6 +143,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         openPanel.allowsMultipleSelection = false
         openPanel.canChooseDirectories = true
         openPanel.canChooseFiles = false
+        openPanel.accessoryView = createPathInputAccessoryView(for: openPanel)
 
         openPanel.begin { [weak self] response in
             guard response == .OK, let url = openPanel.url else { return }
@@ -155,6 +160,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             .init(filenameExtension: "parquet") ?? .data,
             .init(filenameExtension: "parq") ?? .data
         ]
+        openPanel.accessoryView = createPathInputAccessoryView(for: openPanel)
 
         openPanel.begin { [weak self] response in
             guard response == .OK, let url = openPanel.url else { return }
@@ -168,6 +174,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         openPanel.allowsMultipleSelection = false
         openPanel.canChooseDirectories = true
         openPanel.canChooseFiles = false
+        openPanel.accessoryView = createPathInputAccessoryView(for: openPanel)
 
         openPanel.begin { [weak self] response in
             guard response == .OK, let url = openPanel.url else { return }
@@ -219,6 +226,46 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func checkForUpdates() {
         updaterController.checkForUpdates(nil)
+    }
+
+    private func createPathInputAccessoryView(for openPanel: NSOpenPanel) -> NSView {
+        let container = NSView(frame: NSRect(x: 0, y: 0, width: 400, height: 32))
+
+        let label = NSTextField(labelWithString: L("dialog.pathLabel"))
+        label.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(label)
+
+        let pathField = NSTextField()
+        pathField.placeholderString = L("dialog.pathPlaceholder")
+        pathField.translatesAutoresizingMaskIntoConstraints = false
+        pathField.target = self
+        pathField.action = #selector(applyPathToPanel(_:))
+        container.addSubview(pathField)
+
+        NSLayoutConstraint.activate([
+            label.leadingAnchor.constraint(equalTo: container.leadingAnchor),
+            label.centerYAnchor.constraint(equalTo: container.centerYAnchor),
+            label.widthAnchor.constraint(equalToConstant: 60),
+
+            pathField.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 8),
+            pathField.trailingAnchor.constraint(equalTo: container.trailingAnchor),
+            pathField.centerYAnchor.constraint(equalTo: container.centerYAnchor)
+        ])
+
+        objc_setAssociatedObject(pathField, &pathInputKey, openPanel, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+
+        return container
+    }
+
+    @objc private func applyPathToPanel(_ sender: NSTextField) {
+        let path = sender.stringValue
+        guard !path.isEmpty else { return }
+
+        let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
+        if let openPanel = objc_getAssociatedObject(sender, &pathInputKey) as? NSOpenPanel {
+            openPanel.directoryURL = url.deletingLastPathComponent()
+            openPanel.nameFieldStringValue = url.lastPathComponent
+        }
     }
 
     func showError(message: String) {
