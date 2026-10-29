@@ -62,14 +62,23 @@ install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP_BUNDLE}/Con
 
 # 3. Sign with local certificate (stable identity for TCC)
 echo "==> Signing..."
+
+# Test timestamp server connectivity
+echo "==> Testing timestamp server..."
+curl -I --connect-timeout 10 https://timestamp.apple.com || echo "Warning: timestamp server unreachable"
+
 if security find-identity -v -p codesigning | grep -q "Local Development Signing"; then
-    codesign --force --deep --sign "Local Development Signing" "$APP_BUNDLE"
+    timeout 300 codesign --force --deep --sign "Local Development Signing" -v "$APP_BUNDLE"
     echo "==> Signed ${APP_BUNDLE} using certificate"
 else
     # Fallback to ad-hoc signing
-    codesign --force --deep --sign - "$APP_BUNDLE"
+    timeout 300 codesign --force --deep --sign - -v "$APP_BUNDLE"
     echo "==> Signed ${APP_BUNDLE} by ad-hoc"
 fi
+
+# Verify signature
+echo "==> Verifying signature..."
+codesign -vvv --deep --strict "$APP_BUNDLE"
 
 echo ""
 echo "==> Done: ${APP_BUNDLE}"
