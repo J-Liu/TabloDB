@@ -56,6 +56,16 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return !keepRunning
     }
 
+    func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
+        if !flag {
+            if windowController == nil {
+                windowController = MainWindowController()
+            }
+            windowController?.showWindow(nil)
+        }
+        return true
+    }
+
     func application(_ sender: NSApplication, openFile filename: String) -> Bool {
         let type: DatabaseType = filename.hasSuffix(".duckdb") ? .duckdb : .sqlite
         do {
