@@ -712,6 +712,8 @@ class EditableCellView: NSTableCellView {
         valueLabel.isEditable = false
         valueLabel.isSelectable = true
         valueLabel.lineBreakMode = .byTruncatingTail
+        valueLabel.maximumNumberOfLines = 1
+        valueLabel.cell?.wraps = false
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(valueLabel)
 
