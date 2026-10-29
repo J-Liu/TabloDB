@@ -100,7 +100,9 @@ class SidebarViewController: NSViewController {
 
     func setConnection(_ connection: DatabaseConnection) {
         currentConnection = connection
-        addButton.isEnabled = true
+        if isViewLoaded {
+            addButton.isEnabled = true
+        }
         loadTables()
     }
 
@@ -108,8 +110,10 @@ class SidebarViewController: NSViewController {
         currentConnection = nil
         tables = []
         filteredTables = []
-        addButton.isEnabled = false
-        tableView.reloadData()
+        if isViewLoaded {
+            addButton.isEnabled = false
+            tableView.reloadData()
+        }
     }
 
     func refresh() {

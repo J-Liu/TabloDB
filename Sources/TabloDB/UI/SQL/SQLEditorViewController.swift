@@ -127,7 +127,9 @@ class SQLEditorViewController: NSViewController {
 
     func setConnection(_ connection: DatabaseConnection?) {
         currentConnection = connection
-        executeButton.isEnabled = connection != nil
+        if isViewLoaded {
+            executeButton.isEnabled = connection != nil
+        }
     }
 
     @objc private func executeSQL() {
