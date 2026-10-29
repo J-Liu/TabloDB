@@ -96,6 +96,9 @@ class MenuController {
         closeItem.target = self
         fileMenu.addItem(closeItem)
 
+        let closeWindowItem = NSMenuItem(title: L("menu.closeWindow"), action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+        fileMenu.addItem(closeWindowItem)
+
         fileMenu.addItem(NSMenuItem.separator())
 
         recentMenu = NSMenu(title: L("menu.recent"))
