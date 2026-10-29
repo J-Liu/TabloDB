@@ -43,11 +43,7 @@ jobs:
         security set-key-partition-list -S apple-tool:,apple:,codesign: \
           -s -k "" build.keychain
 
-        security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
-        sudo security add-trusted-cert -d -r trustRoot -p codeSign \
-          -k /Library/Keychains/System.keychain /tmp/cert.pem
-
-        rm /tmp/cert.p12 /tmp/cert.pem
+        rm /tmp/cert.p12
 
     - name: Build and package
       run: |
