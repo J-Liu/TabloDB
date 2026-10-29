@@ -136,6 +136,35 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
+    func openParquetFile() {
+        let openPanel = NSOpenPanel()
+        openPanel.title = L("dialog.openParquet")
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseDirectories = false
+        openPanel.allowedContentTypes = [
+            .init(filenameExtension: "parquet") ?? .data,
+            .init(filenameExtension: "parq") ?? .data
+        ]
+
+        openPanel.begin { [weak self] response in
+            guard response == .OK, let url = openPanel.url else { return }
+            self?.openDatabase(at: url.path, type: .parquet)
+        }
+    }
+
+    func openParquetDirectory() {
+        let openPanel = NSOpenPanel()
+        openPanel.title = L("dialog.openParquetDir")
+        openPanel.allowsMultipleSelection = false
+        openPanel.canChooseDirectories = true
+        openPanel.canChooseFiles = false
+
+        openPanel.begin { [weak self] response in
+            guard response == .OK, let url = openPanel.url else { return }
+            self?.openDatabase(at: url.path, type: .parquet)
+        }
+    }
+
     func openDatabase(at path: String, type: DatabaseType) {
         do {
             let connection = try DatabaseManager.shared.openDatabase(at: path, type: type)

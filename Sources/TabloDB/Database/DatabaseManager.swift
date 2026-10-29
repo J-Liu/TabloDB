@@ -31,6 +31,9 @@ class DatabaseManager {
         case .csv:
             let isDirectory = FileManager.default.isReadableFile(atPath: path) && (try? FileManager.default.contentsOfDirectory(atPath: path)) != nil
             connection = CSVConnection(path: path, isDirectory: isDirectory)
+        case .parquet:
+            let isDirectory = FileManager.default.isReadableFile(atPath: path) && (try? FileManager.default.contentsOfDirectory(atPath: path)) != nil
+            connection = ParquetConnection(path: path, isDirectory: isDirectory)
         }
 
         try connection.connect()

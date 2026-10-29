@@ -36,6 +36,7 @@ enum DatabaseType: String {
     case sqlite = "sqlite"
     case duckdb = "duckdb"
     case csv = "csv"
+    case parquet = "parquet"
 }
 
 protocol DatabaseConnection {

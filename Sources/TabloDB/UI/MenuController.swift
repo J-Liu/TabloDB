@@ -84,6 +84,14 @@ class MenuController {
         openCSVDirItem.target = self
         fileMenu.addItem(openCSVDirItem)
 
+        let openParquetItem = NSMenuItem(title: L("menu.openParquet"), action: #selector(openParquetFile), keyEquivalent: "")
+        openParquetItem.target = self
+        fileMenu.addItem(openParquetItem)
+
+        let openParquetDirItem = NSMenuItem(title: L("menu.openParquetDir"), action: #selector(openParquetDirectory), keyEquivalent: "")
+        openParquetDirItem.target = self
+        fileMenu.addItem(openParquetDirItem)
+
         let closeItem = NSMenuItem(title: L("menu.close"), action: #selector(closeDatabase), keyEquivalent: "w")
         closeItem.target = self
         fileMenu.addItem(closeItem)
@@ -167,7 +175,7 @@ class MenuController {
             recentMenu.addItem(NSMenuItem(title: L("menu.recent.none"), action: nil, keyEquivalent: ""))
         } else {
             for (path, type) in recent {
-                let typeLabel = type == .sqlite ? "SQLite" : type == .duckdb ? "DuckDB" : "CSV"
+                let typeLabel = type == .sqlite ? "SQLite" : type == .duckdb ? "DuckDB" : type == .csv ? "CSV" : "Parquet"
                 let item = NSMenuItem(title: "\(URL(fileURLWithPath: path).lastPathComponent) (\(typeLabel))", action: #selector(openRecentDatabase(_:)), keyEquivalent: "")
                 item.target = self
                 item.representedObject = ["path": path, "type": type.rawValue]
@@ -200,6 +208,14 @@ class MenuController {
 
     @objc func openCSVDirectory() {
         appDelegate.openCSVDirectory()
+    }
+
+    @objc func openParquetFile() {
+        appDelegate.openParquetFile()
+    }
+
+    @objc func openParquetDirectory() {
+        appDelegate.openParquetDirectory()
     }
 
     @objc func closeDatabase() {
