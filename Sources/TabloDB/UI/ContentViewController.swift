@@ -742,7 +742,13 @@ class EditableCellView: NSTableCellView {
 
     func configure(value: Any?, isEditable: Bool) {
         if let value = value {
-            valueLabel.stringValue = String(describing: value)
+            var displayString = String(describing: value)
+            // Only show first line for multi-line content
+            let lines = displayString.components(separatedBy: .newlines)
+            if lines.count > 1 {
+                displayString = lines[0] + "..."
+            }
+            valueLabel.stringValue = displayString
             valueLabel.textColor = .labelColor
             editField.stringValue = String(describing: value)
         } else {
