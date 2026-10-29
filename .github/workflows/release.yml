@@ -57,6 +57,9 @@ jobs:
         chmod +x make_icon.sh
         ./make_icon.sh
 
+    - name: Sync time
+      run: sudo sntp -sS time.windows.com
+
     - name: Build and package
       run: |
         chmod +x build.sh
