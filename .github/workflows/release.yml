@@ -49,17 +49,6 @@ jobs:
 
         rm /tmp/cert.p12 /tmp/cert.pem
 
-    - name: Install librsvg
-      run: brew install librsvg
-
-    - name: Generate icon
-      run: |
-        chmod +x make_icon.sh
-        ./make_icon.sh
-
-    - name: Sync time
-      run: sudo sntp -sS time.windows.com
-
     - name: Build and package
       run: |
         chmod +x build.sh
