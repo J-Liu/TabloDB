@@ -15,7 +15,7 @@ let package = Package(
     ],
     dependencies: [
         .package(url: "https://github.com/duckdb/duckdb-swift", from: "1.1.3"),
-        .package(url: "https://github.com/sparkle-project/Sparkle", from: "2.6.0")
+        .package(url: "https://github.com/sparkle-project/Sparkle", exact: "2.6.0")
     ],
     targets: [
         .executableTarget(
