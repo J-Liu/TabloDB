@@ -13,19 +13,34 @@ class MainWindowController: NSWindowController {
     private var sqlTab: NSTabViewItem!
 
     init() {
+        LLog("MainWindowController.init() - START")
+
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1024, height: 800),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
         )
-        window.center()
+        LLog("Window created with contentRect: \(window.contentRect(forFrameRect: NSRect(x: 0, y: 0, width: 1024, height: 800)))")
+
         window.title = "TabloDB"
         window.minSize = NSSize(width: 600, height: 400)
 
         super.init(window: window)
+        LLog("After super.init - window frame: \(window.frame)")
 
         setupSplitView()
+        LLog("After setupSplitView - window frame: \(window.frame)")
+
+        // Force correct window size after contentViewController is set
+        window.setFrame(NSRect(x: 0, y: 0, width: 1024, height: 800), display: true)
+        LLog("After forced setFrame - window frame: \(window.frame)")
+
+        window.center()
+        LLog("After center() - window frame: \(window.frame)")
+
+        LLog("MainWindowController.init() - END")
+        LLog("Final window size: \(window.frame.width) x \(window.frame.height)")
 
         NotificationCenter.default.addObserver(
             self,
@@ -75,6 +90,15 @@ class MainWindowController: NSWindowController {
         sidebarController.onTableSelected = { [weak self] tableInfo in
             self?.contentController.displayTable(tableInfo)
             self?.tabViewController.selectedTabViewItemIndex = 0
+        }
+
+        sidebarController.onDatabaseSelected = { [weak self] connection in
+            self?.contentController.displayDatabaseOverview(connection)
+            self?.tabViewController.selectedTabViewItemIndex = 0
+        }
+
+        contentController.onTableDoubleClicked = { [weak self] tableInfo in
+            self?.contentController.displayTable(tableInfo)
         }
     }
 

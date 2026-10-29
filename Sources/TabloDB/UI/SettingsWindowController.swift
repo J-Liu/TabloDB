@@ -11,6 +11,8 @@ class SettingsWindowController: NSWindowController {
     private var languagePopup: NSPopUpButton!
     private var updateCheckPopup: NSPopUpButton!
     private var quitOnCloseCheckbox: NSButton!
+    private var logEnabledCheckbox: NSButton!
+    private var logPathField: NSTextField!
     private var versionLabel: NSTextField!
     private var copyrightLabel: NSTextField!
     private var descriptionLabel: NSTextField!
@@ -190,6 +192,22 @@ class SettingsWindowController: NSWindowController {
         quitOnCloseCheckbox.state = quitOnClose ? .on : .off
         stack.addArrangedSubview(makeRow(label: L("settings.quitOnClose"), control: quitOnCloseCheckbox))
 
+        // Logging - checkbox and path on same row
+        let logEnabled = UserDefaults.standard.object(forKey: "settings.logEnabled") as? Bool ?? false
+        logEnabledCheckbox = NSButton(checkboxWithTitle: "", target: self, action: #selector(logEnabledChanged(_:)))
+        logEnabledCheckbox.state = logEnabled ? .on : .off
+
+        logPathField = NSTextField()
+        logPathField.isEditable = false
+        logPathField.isSelectable = true
+        logPathField.stringValue = LogManager.shared.logPath
+        logPathField.widthAnchor.constraint(equalToConstant: controlWidth).isActive = true
+
+        let logRow = NSStackView(views: [logEnabledCheckbox, logPathField])
+        logRow.orientation = .horizontal
+        logRow.spacing = 8
+        stack.addArrangedSubview(makeRow(label: L("settings.logEnabled"), control: logRow))
+
         return wrapInTopAlignedContainer(stack)
     }
 
@@ -320,6 +338,12 @@ class SettingsWindowController: NSWindowController {
     @objc private func quitOnCloseChanged(_ sender: NSButton) {
         let shouldQuit = sender.state == .off
         UserDefaults.standard.set(!shouldQuit, forKey: "quitOnClose")
+    }
+
+    @objc private func logEnabledChanged(_ sender: NSButton) {
+        let enabled = sender.state == .on
+        LogManager.shared.isEnabled = enabled
+        logPathField.stringValue = LogManager.shared.logPath
     }
 
     @objc private func openGitHub() {

@@ -25,6 +25,11 @@ class ContentViewController: NSViewController {
     private var sortColumn: String?
     private var sortAscending: Bool = true
 
+    // Database overview mode
+    private var isOverviewMode = false
+    private var overviewTables: [TableInfo] = []
+    var onTableDoubleClicked: ((TableInfo) -> Void)?
+
     override func loadView() {
         view = NSView()
 
@@ -104,6 +109,8 @@ class ContentViewController: NSViewController {
         tableView.allowsEmptySelection = true
         tableView.allowsMultipleSelection = true
         tableView.usesAlternatingRowBackgroundColors = true
+        tableView.target = self
+        tableView.doubleAction = #selector(tableViewDoubleClicked)
 
         tableView.dataSource = self
         tableView.delegate = self
@@ -125,6 +132,7 @@ class ContentViewController: NSViewController {
     func displayTable(_ tableInfo: TableInfo?) {
         currentTable = tableInfo
         currentOffset = 0
+        isOverviewMode = false
 
         guard let tableInfo = tableInfo else {
             showEmptyState()
@@ -134,6 +142,20 @@ class ContentViewController: NSViewController {
         checkEditability(tableInfo: tableInfo)
         loadTableData(tableInfo: tableInfo)
         loadRowCount(tableInfo: tableInfo)
+    }
+
+    func displayDatabaseOverview(_ connection: DatabaseConnection) {
+        isOverviewMode = true
+        currentTable = nil
+        currentConnection = connection
+        toolbarView.isHidden = true
+
+        do {
+            overviewTables = try connection.getTables()
+            updateOverviewTableView()
+        } catch {
+            showError(message: error.localizedDescription)
+        }
     }
 
     func refresh() {
@@ -260,20 +282,61 @@ class ContentViewController: NSViewController {
             tableView.removeTableColumn(tableView.tableColumns[0])
         }
 
-        guard let result = queryResult else { return }
+        guard let result = queryResult, result.columns.count > 0 else { return }
 
         let startColumn = primaryKeyColumns.isEmpty ? 1 : 0
+
+        guard startColumn < result.columns.count else {
+            // No columns to display after skipping primary key column
+            tableView.reloadData()
+            return
+        }
 
         for index in startColumn..<result.columns.count {
             let columnName = result.columns[index]
             let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("col_\(index)"))
             column.title = columnName
             column.minWidth = 80
+            column.maxWidth = 400
             column.width = 150
             tableView.addTableColumn(column)
         }
 
         tableView.reloadData()
+
+        // Auto-size columns based on content
+        DispatchQueue.main.async {
+            self.autoSizeColumns()
+        }
+    }
+
+    private func autoSizeColumns() {
+        let maxWidth: CGFloat = 400
+        let padding: CGFloat = 20
+
+        for column in tableView.tableColumns {
+            var maxColumnWidth: CGFloat = 0
+
+            // Check header width
+            let headerWidth = (column.title as NSString).size(withAttributes: [.font: NSFont.boldSystemFont(ofSize: 13)]).width + padding
+            maxColumnWidth = max(maxColumnWidth, headerWidth)
+
+            // Check first 50 rows for content width
+            let rowsToCheck = min(50, queryResult?.rows.count ?? 0)
+            for row in 0..<rowsToCheck {
+                guard let result = queryResult, row < result.rows.count else { break }
+                let columnIndex = Int(column.identifier.rawValue.dropFirst(4)) ?? 0
+                guard columnIndex < result.columns.count else { break }
+
+                let value = result.rows[row][columnIndex]
+                let valueString = value != nil ? String(describing: value!) : "NULL"
+                let valueWidth = (valueString as NSString).size(withAttributes: [.font: NSFont.systemFont(ofSize: 13)]).width + padding
+                maxColumnWidth = max(maxColumnWidth, valueWidth)
+            }
+
+            // Apply max width limit
+            column.width = min(maxColumnWidth, maxWidth)
+        }
     }
 
     private func updatePageInfo() {
@@ -306,8 +369,41 @@ class ContentViewController: NSViewController {
         canEdit = false
         primaryKeyColumns = []
         rowIdentifiers = []
+        toolbarView.isHidden = false
         tableView.reloadData()
         updatePageInfo()
+    }
+
+    private func updateOverviewTableView() {
+        while tableView.tableColumns.count > 0 {
+            tableView.removeTableColumn(tableView.tableColumns[0])
+        }
+
+        // Add columns for table overview
+        let nameColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("name"))
+        nameColumn.title = L("overview.name")
+        nameColumn.minWidth = 100
+        tableView.addTableColumn(nameColumn)
+
+        let typeColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("type"))
+        typeColumn.title = L("overview.type")
+        typeColumn.minWidth = 80
+        tableView.addTableColumn(typeColumn)
+
+        let rowsColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("rows"))
+        rowsColumn.title = L("overview.rows")
+        rowsColumn.minWidth = 60
+        tableView.addTableColumn(rowsColumn)
+
+        tableView.reloadData()
+    }
+
+    @objc private func tableViewDoubleClicked() {
+        guard isOverviewMode else { return }
+        let row = tableView.clickedRow
+        guard row >= 0 && row < overviewTables.count else { return }
+        let tableInfo = overviewTables[row]
+        onTableDoubleClicked?(tableInfo)
     }
 
     @objc private func previousPage() {
@@ -467,12 +563,19 @@ class ContentViewController: NSViewController {
 
 extension ContentViewController: NSTableViewDataSource {
     func numberOfRows(in tableView: NSTableView) -> Int {
+        if isOverviewMode {
+            return overviewTables.count
+        }
         return queryResult?.rows.count ?? 0
     }
 }
 
 extension ContentViewController: NSTableViewDelegate {
     func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        if isOverviewMode {
+            return overviewCell(tableView: tableView, tableColumn: tableColumn, row: row)
+        }
+
         guard let result = queryResult, row < result.rows.count else { return nil }
 
         let columnIndex = Int(tableColumn?.identifier.rawValue.dropFirst(4) ?? "0") ?? 0
@@ -490,6 +593,44 @@ extension ContentViewController: NSTableViewDelegate {
         cell?.configure(value: value, isEditable: canEdit)
         cell?.onEdit = { [weak self] newValue in
             self?.saveEdit(row: row, column: columnIndex, newValue: newValue)
+        }
+
+        return cell
+    }
+
+    private func overviewCell(tableView: NSTableView, tableColumn: NSTableColumn?, row: Int) -> NSView? {
+        guard row < overviewTables.count else { return nil }
+        let tableInfo = overviewTables[row]
+
+        let identifier = NSUserInterfaceItemIdentifier("OverviewCell")
+        var cell = tableView.makeView(withIdentifier: identifier, owner: nil) as? NSTableCellView
+        if cell == nil {
+            cell = NSTableCellView()
+            cell?.identifier = identifier
+            let textField = NSTextField()
+            textField.isBezeled = false
+            textField.drawsBackground = false
+            textField.isEditable = false
+            cell?.textField = textField
+            cell?.addSubview(textField)
+            textField.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.activate([
+                textField.leadingAnchor.constraint(equalTo: cell!.leadingAnchor),
+                textField.trailingAnchor.constraint(equalTo: cell!.trailingAnchor),
+                textField.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
+            ])
+        }
+
+        let columnId = tableColumn?.identifier.rawValue ?? ""
+        switch columnId {
+        case "name":
+            cell?.textField?.stringValue = tableInfo.name
+        case "type":
+            cell?.textField?.stringValue = tableInfo.type == .view ? "View" : "Table"
+        case "rows":
+            cell?.textField?.stringValue = "-" // Row count would need extra query
+        default:
+            cell?.textField?.stringValue = ""
         }
 
         return cell
@@ -570,6 +711,7 @@ class EditableCellView: NSTableCellView {
         valueLabel.drawsBackground = false
         valueLabel.isEditable = false
         valueLabel.isSelectable = true
+        valueLabel.lineBreakMode = .byTruncatingTail
         valueLabel.translatesAutoresizingMaskIntoConstraints = false
         addSubview(valueLabel)
 

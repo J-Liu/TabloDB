@@ -96,6 +96,8 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "settings.updateCheck.weekly": "Weekly",
         "settings.updateCheck.monthly": "Monthly",
         "settings.quitOnClose": "Keep running after close:",
+        "settings.logEnabled": "Enable logging:",
+        "settings.logPath": "Log path:",
         "settings.about.version": "Version",
         "settings.about.copyright": "Copyright © 2026 Jia Liu",
         "settings.about.description": "A native macOS database GUI supporting multiple data sources.",
@@ -137,6 +139,11 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "table.error": "Error",
         "table.rowCount": "%d rows",
         "table.page": "Page %d of %d",
+
+        // Overview
+        "overview.name": "Name",
+        "overview.type": "Type",
+        "overview.rows": "Rows",
 
         // SQL Editor
         "sql.run": "Run",
@@ -224,6 +231,8 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "settings.updateCheck.weekly": "每周",
         "settings.updateCheck.monthly": "每月",
         "settings.quitOnClose": "关闭窗口不退出：",
+        "settings.logEnabled": "启用日志：",
+        "settings.logPath": "日志路径：",
         "settings.about.version": "版本",
         "settings.about.copyright": "版权所有 © 2026 Jia Liu",
         "settings.about.description": "原生 macOS 数据库 GUI，支持多种数据源。",
@@ -265,6 +274,11 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "table.error": "错误",
         "table.rowCount": "%d 行",
         "table.page": "第 %d 页，共 %d 页",
+
+        // Overview
+        "overview.name": "名称",
+        "overview.type": "类型",
+        "overview.rows": "行数",
 
         // SQL Editor
         "sql.run": "运行",
@@ -352,6 +366,8 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "settings.updateCheck.weekly": "每週",
         "settings.updateCheck.monthly": "每月",
         "settings.quitOnClose": "關閉視窗不結束：",
+        "settings.logEnabled": "啟用日誌：",
+        "settings.logPath": "日誌路徑：",
         "settings.about.version": "版本",
         "settings.about.copyright": "版權所有 © 2026 Jia Liu",
         "settings.about.description": "原生 macOS 資料庫 GUI，支援多種資料來源。",
@@ -393,6 +409,11 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "table.error": "錯誤",
         "table.rowCount": "%d 列",
         "table.page": "第 %d 頁，共 %d 頁",
+
+        // Overview
+        "overview.name": "名稱",
+        "overview.type": "類型",
+        "overview.rows": "列數",
 
         // SQL Editor
         "sql.run": "執行",

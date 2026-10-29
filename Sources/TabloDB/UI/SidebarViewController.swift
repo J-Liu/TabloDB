@@ -3,12 +3,31 @@
 
 import AppKit
 
+enum SidebarItem {
+    case database(name: String, connection: DatabaseConnection)
+    case table(TableInfo)
+
+    var isDatabase: Bool {
+        if case .database = self { return true }
+        return false
+    }
+
+    var name: String {
+        switch self {
+        case .database(let name, _): return name
+        case .table(let tableInfo): return tableInfo.name
+        }
+    }
+}
+
 class SidebarViewController: NSViewController {
     var onTableSelected: ((TableInfo) -> Void)?
+    var onDatabaseSelected: ((DatabaseConnection) -> Void)?
 
-    private var tableView: NSTableView!
+    private var outlineView: NSOutlineView!
     private var searchField: NSSearchField!
     private var addButton: NSButton!
+    private var rootItem: SidebarItem?
     private var tables: [TableInfo] = []
     private var filteredTables: [TableInfo] = []
     private(set) var currentConnection: DatabaseConnection?
@@ -61,23 +80,22 @@ class SidebarViewController: NSViewController {
         scrollView.hasVerticalScroller = true
         scrollView.borderType = .noBorder
 
-        tableView = NSTableView()
-        tableView.style = .sourceList
-        tableView.headerView = nil
-        tableView.allowsEmptySelection = true
-        tableView.allowsMultipleSelection = false
-        tableView.target = self
-        tableView.doubleAction = #selector(tableDoubleClicked)
-        tableView.menu = createTableMenu()
+        outlineView = NSOutlineView()
+        outlineView.style = .sourceList
+        outlineView.headerView = nil
+        outlineView.allowsEmptySelection = true
+        outlineView.allowsMultipleSelection = false
+        outlineView.dataSource = self
+        outlineView.delegate = self
+        outlineView.target = self
+        outlineView.doubleAction = #selector(itemDoubleClicked)
+        outlineView.menu = createTableMenu()
 
         tableColumn = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("name"))
         tableColumn.title = L("sidebar.tables")
-        tableView.addTableColumn(tableColumn)
+        outlineView.addTableColumn(tableColumn)
 
-        tableView.dataSource = self
-        tableView.delegate = self
-
-        scrollView.documentView = tableView
+        scrollView.documentView = outlineView
         stackView.addArrangedSubview(scrollView)
 
         NotificationCenter.default.addObserver(
@@ -108,11 +126,12 @@ class SidebarViewController: NSViewController {
 
     func clearConnection() {
         currentConnection = nil
+        rootItem = nil
         tables = []
         filteredTables = []
         if isViewLoaded {
             addButton.isEnabled = false
-            tableView.reloadData()
+            outlineView.reloadData()
         }
     }
 
@@ -122,19 +141,32 @@ class SidebarViewController: NSViewController {
 
     private func loadTables() {
         guard let connection = currentConnection else {
+            rootItem = nil
             tables = []
             filteredTables = []
-            tableView.reloadData()
+            outlineView.reloadData()
             return
         }
 
         do {
             tables = try connection.getTables()
             filterTables()
+
+            rootItem = .database(name: connection.displayName, connection: connection)
+            outlineView.reloadData()
+
+            // Expand the database item by default
+            if let root = rootItem {
+                let index = outlineView.row(forItem: root)
+                if index >= 0 {
+                    outlineView.expandItem(root)
+                }
+            }
         } catch {
+            rootItem = nil
             tables = []
             filteredTables = []
-            tableView.reloadData()
+            outlineView.reloadData()
             showError(message: error.localizedDescription)
         }
     }
@@ -146,17 +178,27 @@ class SidebarViewController: NSViewController {
         } else {
             filteredTables = tables.filter { $0.name.lowercased().contains(searchText) }
         }
-        tableView.reloadData()
     }
 
     @objc private func searchTextChanged() {
         filterTables()
+        outlineView.reloadData()
     }
 
-    @objc private func tableDoubleClicked() {
-        let row = tableView.clickedRow
-        guard row >= 0 && row < filteredTables.count else { return }
-        onTableSelected?(filteredTables[row])
+    @objc private func itemDoubleClicked() {
+        let row = outlineView.clickedRow
+        guard let item = outlineView.item(atRow: row) as? SidebarItem else { return }
+
+        switch item {
+        case .database:
+            // Double click on database - show all tables in grid
+            if case .database(_, let connection) = item {
+                onDatabaseSelected?(connection)
+            }
+        case .table(let tableInfo):
+            // Double click on table - open table
+            onTableSelected?(tableInfo)
+        }
     }
 
     private func createTableMenu() -> NSMenu {
@@ -199,9 +241,9 @@ class SidebarViewController: NSViewController {
 
     @objc private func renameTable() {
         guard let connection = currentConnection else { return }
-        let row = tableView.clickedRow
-        guard row >= 0 && row < filteredTables.count else { return }
-        let tableInfo = filteredTables[row]
+        let row = outlineView.clickedRow
+        guard let item = outlineView.item(atRow: row) as? SidebarItem,
+              case .table(let tableInfo) = item else { return }
 
         guard tableInfo.type == .table else {
             showError(message: L("sidebar.error.cannotRenameView"))
@@ -236,9 +278,9 @@ class SidebarViewController: NSViewController {
 
     @objc private func emptyTable() {
         guard let connection = currentConnection else { return }
-        let row = tableView.clickedRow
-        guard row >= 0 && row < filteredTables.count else { return }
-        let tableInfo = filteredTables[row]
+        let row = outlineView.clickedRow
+        guard let item = outlineView.item(atRow: row) as? SidebarItem,
+              case .table(let tableInfo) = item else { return }
 
         guard tableInfo.type == .table else {
             showError(message: L("sidebar.error.cannotEmptyView"))
@@ -267,9 +309,9 @@ class SidebarViewController: NSViewController {
 
     @objc private func deleteTable() {
         guard let connection = currentConnection else { return }
-        let row = tableView.clickedRow
-        guard row >= 0 && row < filteredTables.count else { return }
-        let tableInfo = filteredTables[row]
+        let row = outlineView.clickedRow
+        guard let item = outlineView.item(atRow: row) as? SidebarItem,
+              case .table(let tableInfo) = item else { return }
 
         let alert = NSAlert()
         alert.messageText = L("sidebar.deleteTable.title", tableInfo.type == .view ? "View" : "Table")
@@ -302,45 +344,100 @@ class SidebarViewController: NSViewController {
     }
 }
 
-extension SidebarViewController: NSTableViewDataSource {
-    func numberOfRows(in tableView: NSTableView) -> Int {
-        return filteredTables.count
+extension SidebarViewController: NSOutlineViewDataSource {
+    func outlineView(_ outlineView: NSOutlineView, numberOfChildrenOfItem item: Any?) -> Int {
+        if item == nil {
+            return rootItem != nil ? 1 : 0
+        }
+        if let sidebarItem = item as? SidebarItem, sidebarItem.isDatabase {
+            return filteredTables.count
+        }
+        return 0
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, child index: Int, ofItem item: Any?) -> Any {
+        if item == nil {
+            return rootItem as Any
+        }
+        if let sidebarItem = item as? SidebarItem, sidebarItem.isDatabase {
+            return SidebarItem.table(filteredTables[index])
+        }
+        return SidebarItem.table(filteredTables[index])
+    }
+
+    func outlineView(_ outlineView: NSOutlineView, isItemExpandable item: Any) -> Bool {
+        if let sidebarItem = item as? SidebarItem {
+            return sidebarItem.isDatabase
+        }
+        return false
     }
 }
 
-extension SidebarViewController: NSTableViewDelegate {
-    func tableView(_ tableView: NSTableView, viewFor tableColumn: NSTableColumn?, row: Int) -> NSView? {
-        guard row < filteredTables.count else { return nil }
+extension SidebarViewController: NSOutlineViewDelegate {
+    func outlineView(_ outlineView: NSOutlineView, viewFor tableColumn: NSTableColumn?, item: Any) -> NSView? {
+        guard let sidebarItem = item as? SidebarItem else { return nil }
 
-        let tableInfo = filteredTables[row]
-        let identifier = NSUserInterfaceItemIdentifier("TableCell")
+        let identifier = NSUserInterfaceItemIdentifier("TreeCell")
 
-        var cell = tableView.makeView(withIdentifier: identifier, owner: nil) as? NSTableCellView
+        var cell = outlineView.makeView(withIdentifier: identifier, owner: nil) as? NSTableCellView
         if cell == nil {
             cell = NSTableCellView()
             cell?.identifier = identifier
+
+            let imageView = NSImageView()
+            imageView.translatesAutoresizingMaskIntoConstraints = false
+            cell?.imageView = imageView
+            cell?.addSubview(imageView)
 
             let textField = NSTextField()
             textField.isBezeled = false
             textField.drawsBackground = false
             textField.isEditable = false
             textField.isSelectable = false
+            textField.lineBreakMode = .byTruncatingTail
+            textField.translatesAutoresizingMaskIntoConstraints = false
             cell?.textField = textField
             cell?.addSubview(textField)
 
-            textField.translatesAutoresizingMaskIntoConstraints = false
             NSLayoutConstraint.activate([
-                textField.leadingAnchor.constraint(equalTo: cell!.leadingAnchor),
-                textField.trailingAnchor.constraint(equalTo: cell!.trailingAnchor),
-                textField.centerYAnchor.constraint(equalTo: cell!.centerYAnchor)
+                imageView.leadingAnchor.constraint(equalTo: cell!.leadingAnchor, constant: 4),
+                imageView.centerYAnchor.constraint(equalTo: cell!.centerYAnchor),
+                imageView.widthAnchor.constraint(equalToConstant: 16),
+                imageView.heightAnchor.constraint(equalToConstant: 16),
+
+                textField.leadingAnchor.constraint(equalTo: imageView.trailingAnchor, constant: 4),
+                textField.trailingAnchor.constraint(equalTo: cell!.trailingAnchor, constant: -4),
+                textField.topAnchor.constraint(equalTo: cell!.topAnchor),
+                textField.bottomAnchor.constraint(equalTo: cell!.bottomAnchor)
             ])
         }
 
-        cell?.textField?.stringValue = tableInfo.name
-        cell?.imageView?.image = tableInfo.type == .view
-            ? NSImage(systemSymbolName: "eye", accessibilityDescription: nil)
-            : NSImage(systemSymbolName: "tablecells", accessibilityDescription: nil)
+        switch sidebarItem {
+        case .database(let name, _):
+            cell?.textField?.stringValue = name
+            cell?.imageView?.image = NSImage(systemSymbolName: "externaldrive.fill", accessibilityDescription: nil)
+        case .table(let tableInfo):
+            cell?.textField?.stringValue = tableInfo.name
+            cell?.imageView?.image = tableInfo.type == .view
+                ? NSImage(systemSymbolName: "eye", accessibilityDescription: nil)
+                : NSImage(systemSymbolName: "tablecells", accessibilityDescription: nil)
+        }
 
         return cell
+    }
+
+    func outlineViewSelectionDidChange(_ notification: Notification) {
+        guard let outlineView = notification.object as? NSOutlineView else { return }
+        let row = outlineView.selectedRow
+        guard row >= 0, let item = outlineView.item(atRow: row) as? SidebarItem else { return }
+
+        switch item {
+        case .database(_, let connection):
+            // Single click on database - show all tables in grid
+            onDatabaseSelected?(connection)
+        case .table(let tableInfo):
+            // Single click on table - open table
+            onTableSelected?(tableInfo)
+        }
     }
 }
