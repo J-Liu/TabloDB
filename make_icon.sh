@@ -1,6 +1,5 @@
 #!/bin/bash
-#
-# SPDX-License-Identifier: Apache-2.0
+# SPDX-License-Identifier: AGPL-3.0-or-later
 # Copyright © 2026 Jia Liu
 #
 # Compile TabloDB.icon to Assets.car for macOS
