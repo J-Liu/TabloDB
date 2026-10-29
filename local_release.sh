@@ -33,13 +33,21 @@ zip -r "$ZIP" TabloDB.app
 
 # 4. Sparkle sign
 echo "==> Signing with Sparkle..."
-if [ -z "${SPARKLE_PRIVATE_KEY:-}" ]; then
-    echo "Error: SPARKLE_PRIVATE_KEY environment variable not set"
-    echo "Set it with: export SPARKLE_PRIVATE_KEY='your-key'"
+
+# Try to get key from keychain first, then environment variable
+SPARKLE_KEY=""
+if security find-generic-password -s "Sparkle" -a "com.jialiu.tablodb" -w 2>/dev/null; then
+    SPARKLE_KEY=$(security find-generic-password -s "Sparkle" -a "com.jialiu.tablodb" -w 2>/dev/null)
+elif [ -n "${SPARKLE_PRIVATE_KEY:-}" ]; then
+    SPARKLE_KEY="$SPARKLE_PRIVATE_KEY"
+else
+    echo "Error: Sparkle private key not found"
+    echo "Either store in keychain: security add-generic-password -s 'Sparkle' -a 'com.jialiu.tablodb' -w 'your-key'"
+    echo "Or set environment variable: export SPARKLE_PRIVATE_KEY='your-key'"
     exit 1
 fi
 
-echo "$SPARKLE_PRIVATE_KEY" > /tmp/sparkle_key.txt
+echo "$SPARKLE_KEY" > /tmp/sparkle_key.txt
 RAW=$(./.build/artifacts/sparkle/Sparkle/bin/sign_update "$ZIP" --ed-key-file /tmp/sparkle_key.txt)
 rm /tmp/sparkle_key.txt
 
