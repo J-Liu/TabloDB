@@ -285,10 +285,6 @@ class SettingsWindowController: NSWindowController {
                 self.window?.close()
                 return nil
             }
-            if event.modifierFlags.contains(.command) && event.keyCode == 13 {
-                self.window?.close()
-                return nil
-            }
             return event
         }
     }
