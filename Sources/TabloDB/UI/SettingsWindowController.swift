@@ -26,7 +26,11 @@ class SettingsWindowController: NSWindowController {
     private let controlWidth: CGFloat = 200
     private let rowSpacing: CGFloat = 16
 
-    init() {
+    private var initialTabIndex: Int = 0
+
+    init(tabIndex: Int = 0) {
+        self.initialTabIndex = tabIndex
+
         let screenFrame = NSScreen.main?.visibleFrame ?? .zero
         let width: CGFloat = 550
         let height: CGFloat = 450
@@ -89,10 +93,21 @@ class SettingsWindowController: NSWindowController {
         tabView.addTabViewItem(aboutItem)
 
         window?.title = L("settings.title")
+
+        // Select the initial tab
+        if initialTabIndex >= 0 && initialTabIndex < tabView.numberOfTabViewItems {
+            tabView.selectTabViewItem(at: initialTabIndex)
+        }
     }
 
     @objc private func languageDidChange() {
         recreateTabs()
+    }
+
+    func selectTab(index: Int) {
+        if index >= 0 && index < tabView.numberOfTabViewItems {
+            tabView.selectTabViewItem(at: index)
+        }
     }
 
     // MARK: - Layout Helpers

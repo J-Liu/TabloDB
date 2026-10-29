@@ -246,7 +246,19 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
     func showSettings() {
         if settingsWindowController == nil {
-            settingsWindowController = SettingsWindowController()
+            settingsWindowController = SettingsWindowController(tabIndex: 0)
+        } else {
+            settingsWindowController?.selectTab(index: 0)
+        }
+        settingsWindowController?.showWindow(nil)
+        settingsWindowController?.window?.makeKeyAndOrderFront(nil)
+    }
+
+    func showAbout() {
+        if settingsWindowController == nil {
+            settingsWindowController = SettingsWindowController(tabIndex: 1)
+        } else {
+            settingsWindowController?.selectTab(index: 1)
         }
         settingsWindowController?.showWindow(nil)
         settingsWindowController?.window?.makeKeyAndOrderFront(nil)

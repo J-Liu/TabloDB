@@ -257,7 +257,7 @@ class MenuController {
     }
 
     @objc func showAbout() {
-        appDelegate.showSettings()
+        appDelegate.showAbout()
     }
 
     @objc func showPreferences() {
