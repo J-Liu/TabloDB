@@ -68,20 +68,6 @@ install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP_BUNDLE}/Con
 
 # 3. Sign with local certificate (stable identity for TCC)
 echo "==> Signing..."
-echo "DEBUG: Searching for certificate in build.keychain..."
-security find-identity -v -p codesigning build.keychain 2>&1 || echo "DEBUG: build.keychain not found or error"
-
-echo "DEBUG: Searching for certificate in all keychains..."
-security find-identity -v -p codesigning 2>&1
-
-if ! security find-identity -v -p codesigning build.keychain 2>/dev/null | grep -q "Local Development Signing"; then
-    # Fallback: search all keychains
-    if ! security find-identity -v -p codesigning | grep -q "Local Development Signing"; then
-        echo "Error: Certificate 'Local Development Signing' not found"
-        exit 1
-    fi
-fi
-
 codesign --force --deep --sign "Local Development Signing" "$APP_BUNDLE"
 echo "==> Signed ${APP_BUNDLE}"
 
