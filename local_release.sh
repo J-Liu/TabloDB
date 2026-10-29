@@ -36,13 +36,13 @@ echo "==> Signing with Sparkle..."
 
 # Try to get key from keychain first, then environment variable
 SPARKLE_KEY=""
-if security find-generic-password -s "Sparkle" -a "com.jialiu.tablodb" -w 2>/dev/null; then
-    SPARKLE_KEY=$(security find-generic-password -s "Sparkle" -a "com.jialiu.tablodb" -w 2>/dev/null)
-elif [ -n "${SPARKLE_PRIVATE_KEY:-}" ]; then
-    SPARKLE_KEY="$SPARKLE_PRIVATE_KEY"
-else
+SPARKLE_KEY=$(security find-generic-password -s "https://sparkle-project.org" -a "com.jialiu.tablodb" -w 2>/dev/null) || true
+if [ -z "$SPARKLE_KEY" ]; then
+    SPARKLE_KEY="${SPARKLE_PRIVATE_KEY:-}"
+fi
+if [ -z "$SPARKLE_KEY" ]; then
     echo "Error: Sparkle private key not found"
-    echo "Either store in keychain: security add-generic-password -s 'Sparkle' -a 'com.jialiu.tablodb' -w 'your-key'"
+    echo "Store in keychain: security add-generic-password -s 'https://sparkle-project.org' -a 'com.jialiu.tablodb' -w 'your-key'"
     echo "Or set environment variable: export SPARKLE_PRIVATE_KEY='your-key'"
     exit 1
 fi
