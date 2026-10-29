@@ -92,7 +92,7 @@ class MenuController {
         openParquetDirItem.target = self
         fileMenu.addItem(openParquetDirItem)
 
-        let closeItem = NSMenuItem(title: L("menu.close"), action: #selector(closeDatabase), keyEquivalent: "w")
+        let closeItem = NSMenuItem(title: L("menu.close"), action: #selector(closeDatabase), keyEquivalent: "")
         closeItem.target = self
         fileMenu.addItem(closeItem)
 
