@@ -49,6 +49,9 @@ jobs:
 
         rm /tmp/cert.p12 /tmp/cert.pem
 
+    - name: Sync clock
+      run: sudo sntp -sS time.windows.com
+
     - name: Build and package
       run: |
         chmod +x build.sh
