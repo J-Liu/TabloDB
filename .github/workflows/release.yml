@@ -44,13 +44,10 @@ jobs:
           -s -k "" build.keychain
 
         security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
-        sudo security add-trusted-cert -d -r trustRoot \
+        sudo security add-trusted-cert -d -r trustRoot -p codeSign \
           -k /Library/Keychains/System.keychain /tmp/cert.pem
 
         rm /tmp/cert.p12 /tmp/cert.pem
-
-    - name: Sync clock
-      run: sudo sntp -sS time.windows.com
 
     - name: Build and package
       run: |
