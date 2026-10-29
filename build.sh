@@ -67,12 +67,17 @@ echo "==> Signing..."
 echo "==> Testing timestamp server..."
 curl -I --connect-timeout 10 https://timestamp.apple.com || echo "Warning: timestamp server unreachable"
 
+# Timeout wrapper for macOS (no gtimeout)
+timeout_cmd() {
+    perl -e 'alarm shift; exec @ARGV' "$@"
+}
+
 if security find-identity -v -p codesigning | grep -q "Local Development Signing"; then
-    timeout 300 codesign --force --deep --sign "Local Development Signing" -v "$APP_BUNDLE"
+    timeout_cmd 300 codesign --force --deep --sign "Local Development Signing" -v "$APP_BUNDLE"
     echo "==> Signed ${APP_BUNDLE} using certificate"
 else
     # Fallback to ad-hoc signing
-    timeout 300 codesign --force --deep --sign - -v "$APP_BUNDLE"
+    timeout_cmd 300 codesign --force --deep --sign - -v "$APP_BUNDLE"
     echo "==> Signed ${APP_BUNDLE} by ad-hoc"
 fi
 
