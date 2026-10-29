@@ -211,6 +211,13 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         // Success
         "success.import": "Import Successful",
         "success.import.message": "Imported %d rows into table '%@'.",
+
+        // Edit
+        "edit.confirm.title": "Save Changes?",
+        "edit.confirm.message": "Do you want to save this change?",
+        "edit.confirm.save": "Save",
+        "edit.confirm.cancel": "Cancel",
+        "edit.confirm.dontAsk": "Don't ask again",
     ],
 
     .simplifiedChinese: [
@@ -346,6 +353,13 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         // Success
         "success.import": "导入成功",
         "success.import.message": "已将 %d 行数据导入到表 '%@'。",
+
+        // Edit
+        "edit.confirm.title": "保存更改？",
+        "edit.confirm.message": "是否保存此更改？",
+        "edit.confirm.save": "保存",
+        "edit.confirm.cancel": "取消",
+        "edit.confirm.dontAsk": "不再询问",
     ],
 
     .traditionalChinese: [
@@ -481,5 +495,12 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         // Success
         "success.import": "匯入成功",
         "success.import.message": "已將 %d 列資料匯入到表 '%@'。",
+
+        // Edit
+        "edit.confirm.title": "儲存變更？",
+        "edit.confirm.message": "是否儲存此變更？",
+        "edit.confirm.save": "儲存",
+        "edit.confirm.cancel": "取消",
+        "edit.confirm.dontAsk": "不再詢問",
     ]
 ]

@@ -711,10 +711,12 @@ extension ContentViewController: NSTableViewDelegate {
     }
 }
 
-class EditableCellView: NSTableCellView {
+class EditableCellView: NSTableCellView, NSTextFieldDelegate {
     private var valueLabel: NSTextField!
     private var editField: NSTextField!
     var onEdit: ((Any?) -> Void)?
+    private var originalValue: String = ""
+    private var isEditing = false
 
     override init(frame frameRect: NSRect) {
         super.init(frame: frameRect)
@@ -735,8 +737,7 @@ class EditableCellView: NSTableCellView {
         editField.bezelStyle = .roundedBezel
         editField.isHidden = true
         editField.translatesAutoresizingMaskIntoConstraints = false
-        editField.target = self
-        editField.action = #selector(editEnded)
+        editField.delegate = self
         addSubview(editField)
 
         NSLayoutConstraint.activate([
@@ -784,15 +785,71 @@ class EditableCellView: NSTableCellView {
     }
 
     private func startEditing() {
+        isEditing = true
+        originalValue = editField.stringValue
         valueLabel.isHidden = true
         editField.isHidden = false
         window?.makeFirstResponder(editField)
     }
 
-    @objc private func editEnded() {
-        valueLabel.isHidden = false
-        editField.isHidden = true
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        if commandSelector == #selector(NSResponder.cancelOperation(_:)) {
+            // Escape - cancel editing
+            cancelEditing()
+            return true
+        }
+        return false
+    }
 
+    func controlTextDidEndEditing(_ obj: Notification) {
+        guard isEditing else { return }
+        isEditing = false
+
+        // Check if value changed
+        let newString = editField.stringValue
+        if newString != originalValue {
+            // Value changed - confirm edit
+            confirmEdit()
+        } else {
+            // No change - just restore display
+            finishEditing(cancelled: true)
+        }
+    }
+
+    private func confirmEdit() {
+        let skipConfirm = UserDefaults.standard.bool(forKey: "settings.skipEditConfirm")
+
+        if skipConfirm {
+            applyEdit()
+        } else {
+            let alert = NSAlert()
+            alert.messageText = L("edit.confirm.title")
+            alert.informativeText = L("edit.confirm.message")
+            alert.alertStyle = .warning
+            alert.addButton(withTitle: L("edit.confirm.save"))
+            alert.addButton(withTitle: L("edit.confirm.cancel"))
+
+            let checkbox = NSButton(checkboxWithTitle: L("edit.confirm.dontAsk"), target: nil, action: nil)
+            alert.accessoryView = checkbox
+
+            if let window = window {
+                alert.beginSheetModal(for: window) { [weak self] response in
+                    if response == .alertFirstButtonReturn {
+                        // Save
+                        if checkbox.state == .on {
+                            UserDefaults.standard.set(true, forKey: "settings.skipEditConfirm")
+                        }
+                        self?.applyEdit()
+                    } else {
+                        // Cancel
+                        self?.finishEditing(cancelled: true)
+                    }
+                }
+            }
+        }
+    }
+
+    private func applyEdit() {
         let newString = editField.stringValue
         if newString.isEmpty {
             onEdit?(nil)
@@ -800,8 +857,25 @@ class EditableCellView: NSTableCellView {
             valueLabel.textColor = .systemGray
         } else {
             onEdit?(newString)
-            valueLabel.stringValue = newString
+            var displayString = newString
+            let lines = displayString.components(separatedBy: .newlines)
+            if lines.count > 1 {
+                displayString = lines[0] + "..."
+            }
+            valueLabel.stringValue = displayString
             valueLabel.textColor = .labelColor
         }
+        finishEditing(cancelled: false)
+    }
+
+    private func cancelEditing() {
+        editField.stringValue = originalValue
+        finishEditing(cancelled: true)
+    }
+
+    private func finishEditing(cancelled: Bool) {
+        isEditing = false
+        valueLabel.isHidden = false
+        editField.isHidden = true
     }
 }
