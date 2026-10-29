@@ -655,6 +655,19 @@ extension ContentViewController: NSTableViewDelegate {
             sortAscending = true
         }
 
+        // Update sort indicators
+        for column in tableView.tableColumns {
+            tableView.setIndicatorImage(nil, in: column)
+        }
+
+        let sortImage: NSImage?
+        if sortAscending {
+            sortImage = NSImage(systemSymbolName: "chevron.up", accessibilityDescription: "Ascending")
+        } else {
+            sortImage = NSImage(systemSymbolName: "chevron.down", accessibilityDescription: "Descending")
+        }
+        tableView.setIndicatorImage(sortImage, in: tableColumn)
+
         currentOffset = 0
         if let table = currentTable {
             loadTableData(tableInfo: table)
