@@ -1,10 +1,12 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024" width="1024" height="1024">
+  <!-- Background base color. Change #1C1917 to adjust the overall base tone. -->
   <rect width="1024" height="1024" fill="#1C1917"/>
 
   <defs>
+    <!-- Subtle warm glow. Adjust stop-color and stop-opacity to tune intensity. -->
     <radialGradient id="glow" cx="50%" cy="50%" r="60%">
-      <stop offset="0%"   stop-color="#F97316" stop-opacity="0.50"/>
-      <stop offset="50%"  stop-color="#EA580C" stop-opacity="0.20"/>
+      <stop offset="0%"   stop-color="#F97316" stop-opacity="0.11"/>
+      <stop offset="50%"  stop-color="#EA580C" stop-opacity="0.03"/>
       <stop offset="100%" stop-color="#EA580C" stop-opacity="0"/>
     </radialGradient>
   </defs>
