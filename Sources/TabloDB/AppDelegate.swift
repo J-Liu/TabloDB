@@ -5,6 +5,7 @@ import AppKit
 import Sparkle
 
 private var pathInputKey: UInt8 = 0
+private var manualPathKey: UInt8 = 0
 
 class AppDelegate: NSObject, NSApplicationDelegate {
     private var mainWindow: NSWindow?
@@ -114,7 +115,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         openPanel.accessoryView = createPathInputAccessoryView(for: openPanel)
 
         openPanel.begin { [weak self] response in
-            guard response == .OK, let url = openPanel.url else { return }
+            guard response == .OK else { return }
+            let url = objc_getAssociatedObject(openPanel, &manualPathKey) as? URL ?? openPanel.url
+            guard let url = url else { return }
             let type: DatabaseType = url.pathExtension == "duckdb" ? .duckdb : .sqlite
             self?.openDatabase(at: url.path, type: type)
         }
@@ -132,7 +135,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         openPanel.accessoryView = createPathInputAccessoryView(for: openPanel)
 
         openPanel.begin { [weak self] response in
-            guard response == .OK, let url = openPanel.url else { return }
+            guard response == .OK else { return }
+            let url = objc_getAssociatedObject(openPanel, &manualPathKey) as? URL ?? openPanel.url
+            guard let url = url else { return }
             self?.openDatabase(at: url.path, type: .csv)
         }
     }
@@ -146,7 +151,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         openPanel.accessoryView = createPathInputAccessoryView(for: openPanel)
 
         openPanel.begin { [weak self] response in
-            guard response == .OK, let url = openPanel.url else { return }
+            guard response == .OK else { return }
+            let url = objc_getAssociatedObject(openPanel, &manualPathKey) as? URL ?? openPanel.url
+            guard let url = url else { return }
             self?.openDatabase(at: url.path, type: .csv)
         }
     }
@@ -163,7 +170,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         openPanel.accessoryView = createPathInputAccessoryView(for: openPanel)
 
         openPanel.begin { [weak self] response in
-            guard response == .OK, let url = openPanel.url else { return }
+            guard response == .OK else { return }
+            let url = objc_getAssociatedObject(openPanel, &manualPathKey) as? URL ?? openPanel.url
+            guard let url = url else { return }
             self?.openDatabase(at: url.path, type: .parquet)
         }
     }
@@ -177,7 +186,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         openPanel.accessoryView = createPathInputAccessoryView(for: openPanel)
 
         openPanel.begin { [weak self] response in
-            guard response == .OK, let url = openPanel.url else { return }
+            guard response == .OK else { return }
+            let url = objc_getAssociatedObject(openPanel, &manualPathKey) as? URL ?? openPanel.url
+            guard let url = url else { return }
             self?.openDatabase(at: url.path, type: .parquet)
         }
     }
@@ -238,8 +249,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         let pathField = NSTextField()
         pathField.placeholderString = L("dialog.pathPlaceholder")
         pathField.translatesAutoresizingMaskIntoConstraints = false
-        pathField.target = self
-        pathField.action = #selector(applyPathToPanel(_:))
+        pathField.delegate = self
         container.addSubview(pathField)
 
         NSLayoutConstraint.activate([
@@ -257,17 +267,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return container
     }
 
-    @objc private func applyPathToPanel(_ sender: NSTextField) {
-        let path = sender.stringValue
-        guard !path.isEmpty else { return }
-
-        let url = URL(fileURLWithPath: (path as NSString).expandingTildeInPath)
-        if let openPanel = objc_getAssociatedObject(sender, &pathInputKey) as? NSOpenPanel {
-            openPanel.directoryURL = url.deletingLastPathComponent()
-            openPanel.nameFieldStringValue = url.lastPathComponent
-        }
-    }
-
     func showError(message: String) {
         let alert = NSAlert()
         alert.messageText = L("table.error")
@@ -280,5 +279,24 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 extension AppDelegate: SPUStandardUserDriverDelegate {
     var supportsGentleScheduledUpdateReminders: Bool {
         return true
+    }
+}
+
+extension AppDelegate: NSTextFieldDelegate {
+    func control(_ control: NSControl, textView: NSTextView, doCommandBy commandSelector: Selector) -> Bool {
+        if commandSelector == #selector(NSTextView.insertNewline(_:)) {
+            let path = control.stringValue
+            let expandedPath = (path as NSString).expandingTildeInPath
+
+            if FileManager.default.fileExists(atPath: expandedPath) {
+                let url = URL(fileURLWithPath: expandedPath)
+                if let openPanel = objc_getAssociatedObject(control, &pathInputKey) as? NSOpenPanel {
+                    objc_setAssociatedObject(openPanel, &manualPathKey, url, .OBJC_ASSOCIATION_RETAIN_NONATOMIC)
+                    NSApp.stopModal(withCode: .OK)
+                }
+            }
+            return true
+        }
+        return false
     }
 }
