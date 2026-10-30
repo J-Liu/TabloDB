@@ -28,6 +28,11 @@ class LogManager {
     }
 
     private init() {
+        // Always setup logURL so path is available even when logging is disabled
+        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+        let appDir = appSupport.appendingPathComponent("TabloDB")
+        logURL = appDir.appendingPathComponent("tablodb.log")
+
         enabled = UserDefaults.standard.object(forKey: "settings.logEnabled") as? Bool ?? false
         if enabled {
             setupLogFile()
@@ -35,9 +40,9 @@ class LogManager {
     }
 
     private func setupLogFile() {
-        let appSupport = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-        let appDir = appSupport.appendingPathComponent("TabloDB")
+        guard let logURL = logURL else { return }
 
+        let appDir = logURL.deletingLastPathComponent()
         do {
             try FileManager.default.createDirectory(at: appDir, withIntermediateDirectories: true)
         } catch {
@@ -45,13 +50,11 @@ class LogManager {
             return
         }
 
-        logURL = appDir.appendingPathComponent("tablodb.log")
-
         do {
-            if !FileManager.default.fileExists(atPath: logURL!.path) {
-                FileManager.default.createFile(atPath: logURL!.path, contents: nil, attributes: nil)
+            if !FileManager.default.fileExists(atPath: logURL.path) {
+                FileManager.default.createFile(atPath: logURL.path, contents: nil, attributes: nil)
             }
-            logFile = try FileHandle(forWritingTo: logURL!)
+            logFile = try FileHandle(forWritingTo: logURL)
             logFile?.seekToEndOfFile()
             log("=== TabloDB started ===")
         } catch {
