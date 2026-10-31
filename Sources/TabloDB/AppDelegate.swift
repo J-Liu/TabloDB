@@ -49,14 +49,25 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let updater = updaterController.updater
+        updater.automaticallyChecksForUpdates = false  // Always disable built-in auto-check
+
         if interval < 0 {
-            updater.automaticallyChecksForUpdates = false
+            // Never - do nothing
         } else if interval == 0 {
-            updater.automaticallyChecksForUpdates = false
-            updater.checkForUpdatesInBackground()
+            // At startup - check now in background
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                self?.updaterController.updater.checkForUpdatesInBackground()
+            }
         } else {
-            updater.automaticallyChecksForUpdates = true
-            updater.updateCheckInterval = interval
+            // Daily/Weekly/Monthly - check if enough time has passed
+            let lastCheck = UserDefaults.standard.object(forKey: "lastUpdateCheck") as? Date ?? .distantPast
+            let now = Date()
+            if now.timeIntervalSince(lastCheck) >= interval {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) { [weak self] in
+                    self?.updaterController.updater.checkForUpdatesInBackground()
+                    UserDefaults.standard.set(now, forKey: "lastUpdateCheck")
+                }
+            }
         }
 
         if !UserDefaults.standard.bool(forKey: "settings.updateCheckIntervalSet") {

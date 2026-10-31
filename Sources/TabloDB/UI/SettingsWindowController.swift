@@ -337,18 +337,8 @@ class SettingsWindowController: NSWindowController {
     @objc private func updateCheckFrequencyChanged(_ sender: NSPopUpButton) {
         guard let interval = sender.selectedItem?.representedObject as? TimeInterval else { return }
         UserDefaults.standard.set(interval, forKey: "settings.updateCheckInterval")
-
-        if let appDelegate = NSApp.delegate as? AppDelegate {
-            let updater = appDelegate.updaterController.updater
-            if interval < 0 {
-                updater.automaticallyChecksForUpdates = false
-            } else if interval == 0 {
-                updater.automaticallyChecksForUpdates = false
-            } else {
-                updater.automaticallyChecksForUpdates = true
-                updater.updateCheckInterval = interval
-            }
-        }
+        // Note: The new check logic is handled in AppDelegate.configureUpdateCheck()
+        // which is called on app launch. Changing this setting will take effect on next launch.
     }
 
     @objc private func checkForUpdatesNow() {
