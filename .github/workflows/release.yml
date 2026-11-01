@@ -101,8 +101,9 @@ jobs:
         echo "==> Testing timestamp server connectivity..."
         for i in 1 2 3; do
           echo "==> Attempt $i of 3"
-          if curl -v --connect-timeout 10 https://timestamp.apple.com 2>&1 | grep -q "Connected\|SSL\|200"; then
-            echo "✅ Timestamp server reachable"
+          # Test TCP connectivity to timestamp server (port 443)
+          if nc -z -w 10 timestamp.apple.com 443 2>&1; then
+            echo "✅ Timestamp server reachable on port 443"
             exit 0
           fi
           echo "==> Failed, waiting 5s..."
