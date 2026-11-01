@@ -16,18 +16,7 @@ cd "$ROOT_DIR"
 
 # 1. Build the binary
 echo "==> Building ${APP_NAME} (${BUILD_CONFIG})..."
-
-# Start background network keepalive during long compilation
-(while true; do curl -s https://www.apple.com/ > /dev/null; sleep 30; done) &
-KEEPALIVE_PID=$!
-
 swift build -c "$BUILD_CONFIG"
-
-# Stop keepalive
-kill $KEEPALIVE_PID 2>/dev/null || true
-
-# Touch network after long compilation to ensure connectivity for signing
-curl -s https://www.apple.com/ > /dev/null 2>&1 || true
 
 BIN_DIR="$(swift build -c "$BUILD_CONFIG" --show-bin-path)"
 BINARY="${BIN_DIR}/${APP_NAME}"
