@@ -28,6 +28,9 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-spm-
 
+    - name: Sync system clock
+      run: sudo sntp -sS time.apple.com
+
     - name: Import signing certificate
       run: |
         echo "${{ secrets.SIGNING_CERTIFICATE }}" | base64 --decode > /tmp/cert.p12
@@ -50,6 +53,14 @@ jobs:
       run: |
         chmod +x build.sh
         ./build.sh
+
+    - name: Sync clock before signing
+      run: sudo sntp -sS time.apple.com
+
+    - name: Sign app
+      run: |
+        codesign --force --deep --sign "Local Development Signing" TabloDB.app
+        echo "==> Signed TabloDB.app"
 
     - name: Create ZIP for Sparkle
       if: startsWith(github.ref, 'refs/tags/')

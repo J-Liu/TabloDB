@@ -77,11 +77,6 @@ fi
 # Add rpath for frameworks
 install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP_BUNDLE}/Contents/MacOS/${APP_NAME}" 2>/dev/null || true
 
-# 3. Sign with local certificate (stable identity for TCC)
-echo "==> Signing..."
-codesign --force --deep --sign "Local Development Signing" "$APP_BUNDLE"
-echo "==> Signed ${APP_BUNDLE}"
-
 echo ""
 echo "==> Done: ${APP_BUNDLE}"
 echo "    Run:  open \"${APP_BUNDLE}\""
