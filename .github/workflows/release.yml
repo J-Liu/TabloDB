@@ -96,6 +96,27 @@ jobs:
         chmod +x build.sh
         ./build.sh
 
+    - name: Warm up timestamp server connection
+      run: |
+        echo "==> Testing timestamp server connectivity..."
+        for i in 1 2 3; do
+          echo "==> Attempt $i of 3"
+          if curl -v --connect-timeout 10 https://timestamp.apple.com 2>&1 | grep -q "Connected\|SSL\|200"; then
+            echo "✅ Timestamp server reachable"
+            exit 0
+          fi
+          echo "==> Failed, waiting 5s..."
+          sleep 5
+        done
+        echo "⚠️ Warning: Could not reach timestamp server, but will try signing anyway"
+
+    - name: Unlock keychain before signing
+      run: |
+        echo "==> Ensuring keychain is unlocked..."
+        security unlock-keychain -p "" build.keychain
+        security default-keychain -s build.keychain
+        security list-keychains -s build.keychain
+
     - name: Sign app
       run: |
         echo "==> Starting signing process..."
