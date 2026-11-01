@@ -28,9 +28,6 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-spm-
 
-    - name: Sync system clock
-      run: sudo sntp -sS time.windows.com
-
     - name: Import signing certificate
       run: |
         echo "${{ secrets.SIGNING_CERTIFICATE }}" | base64 --decode > /tmp/cert.p12
@@ -47,15 +44,37 @@ jobs:
         security set-key-partition-list -S apple-tool:,apple:,codesign: \
           -s -k "" build.keychain
 
-        rm /tmp/cert.p12
+        # Export the certificate part as PEM and add it as trusted
+        security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
+        sudo security add-trusted-cert -d -r trustRoot \
+          -k /Library/Keychains/System.keychain /tmp/cert.pem
+
+        rm /tmp/cert.p12 /tmp/cert.pem
+
+    - name: Diagnose signing environment
+      run: |
+        echo "==> Keychain list:"
+        security list-keychains
+        echo ""
+        echo "==> Default keychain:"
+        security default-keychain
+        echo ""
+        echo "==> All identities (codesigning):"
+        security find-identity -v -p codesigning
+        echo ""
+        echo "==> All identities (all):"
+        security find-identity -v
+        echo ""
+        echo "==> Looking for 'Local Development Signing' certificate:"
+        security find-certificate -c "Local Development Signing" -p build.keychain | head -20
+        echo ""
+        echo "==> Certificate details:"
+        security find-certificate -c "Local Development Signing" build.keychain
 
     - name: Build and package
       run: |
         chmod +x build.sh
         ./build.sh
-
-    - name: Sync clock before signing
-      run: sudo sntp -sS time.windows.com
 
     - name: Sign app
       run: |
