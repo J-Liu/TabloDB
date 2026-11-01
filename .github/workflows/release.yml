@@ -29,7 +29,7 @@ jobs:
           ${{ runner.os }}-spm-
 
     - name: Sync system clock
-      run: sudo sntp -sS time.apple.com
+      run: sudo sntp -sS time.windows.com
 
     - name: Import signing certificate
       run: |
@@ -55,7 +55,7 @@ jobs:
         ./build.sh
 
     - name: Sync clock before signing
-      run: sudo sntp -sS time.apple.com
+      run: sudo sntp -sS time.windows.com
 
     - name: Sign app
       run: |
