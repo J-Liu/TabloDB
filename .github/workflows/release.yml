@@ -62,7 +62,7 @@ jobs:
         echo "==> Starting signing process..."
         for i in 1 2 3 4; do
           echo "==> Attempt $i of 4"
-          if timeout 60 codesign --force --deep --sign "Local Development Signing" TabloDB.app 2>&1 | tee /tmp/sign.log; then
+          if perl -e 'alarm 60; exec @ARGV' -- codesign --force --deep --sign "Local Development Signing" TabloDB.app 2>&1 | tee /tmp/sign.log; then
             echo "==> Signed successfully on attempt $i"
             codesign -dvvv TabloDB.app 2>&1 | head -20
             exit 0
@@ -73,8 +73,8 @@ jobs:
 
           if grep -q "timestamp service is not available\|A timestamp was expected but was not found" /tmp/sign.log 2>/dev/null; then
             echo "==> Timestamp service unavailable"
-          elif [ $EXIT_CODE -eq 124 ]; then
-            echo "==> Timeout after 60 seconds"
+          elif [ $EXIT_CODE -eq 14 ]; then
+            echo "==> Timeout after 60 seconds (alarm)"
           else
             echo "==> Other error occurred"
           fi
