@@ -68,6 +68,13 @@ install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP_BUNDLE}/Con
 
 # 3. Sign with local certificate (stable identity for TCC)
 echo "==> Signing..."
+
+# Warm up network connection before signing
+echo "  Warming up network..."
+sleep 3
+curl -s -S --connect-timeout 10 https://www.apple.com/ > /dev/null 2>&1 || true
+sleep 2
+
 codesign --force --deep --sign "Local Development Signing" "$APP_BUNDLE"
 echo "==> Signed ${APP_BUNDLE}"
 
