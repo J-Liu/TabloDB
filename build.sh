@@ -16,7 +16,18 @@ cd "$ROOT_DIR"
 
 # 1. Build the binary
 echo "==> Building ${APP_NAME} (${BUILD_CONFIG})..."
+
+# Start background network keepalive during long compilation
+(while true; do curl -s https://www.apple.com/ > /dev/null; sleep 30; done) &
+KEEPALIVE_PID=$!
+
 swift build -c "$BUILD_CONFIG"
+
+# Stop keepalive
+kill $KEEPALIVE_PID 2>/dev/null || true
+
+# Touch network after long compilation to ensure connectivity for signing
+curl -s https://www.apple.com/ > /dev/null 2>&1 || true
 
 BIN_DIR="$(swift build -c "$BUILD_CONFIG" --show-bin-path)"
 BINARY="${BIN_DIR}/${APP_NAME}"
@@ -68,13 +79,6 @@ install_name_tool -add_rpath "@executable_path/../Frameworks" "${APP_BUNDLE}/Con
 
 # 3. Sign with local certificate (stable identity for TCC)
 echo "==> Signing..."
-
-# Warm up network connection before signing
-echo "  Warming up network..."
-sleep 3
-curl -s -S --connect-timeout 10 https://www.apple.com/ > /dev/null 2>&1 || true
-sleep 2
-
 codesign --force --deep --sign "Local Development Signing" "$APP_BUNDLE"
 echo "==> Signed ${APP_BUNDLE}"
 
