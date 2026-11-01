@@ -62,7 +62,7 @@ jobs:
         echo "==> Starting signing process..."
         for i in 1 2 3 4; do
           echo "==> Attempt $i of 4"
-          if perl -e 'alarm 60; exec @ARGV' -- codesign --force --deep --sign "Local Development Signing" TabloDB.app 2>&1 | tee /tmp/sign.log; then
+          if perl -e '$SIG{ALRM} = sub { exit 14 }; alarm 60; exec @ARGV or exit 1' -- codesign --force --deep --sign "Local Development Signing" TabloDB.app 2>&1 | tee /tmp/sign.log; then
             echo "==> Signed successfully on attempt $i"
             codesign -dvvv TabloDB.app 2>&1 | head -20
             exit 0
