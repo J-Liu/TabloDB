@@ -28,6 +28,11 @@ jobs:
         restore-keys: |
           ${{ runner.os }}-spm-
 
+    - name: Build and package
+      run: |
+        chmod +x build.sh
+        ./build.sh
+
     - name: Import signing certificate
       run: |
         echo "==> Decoding certificate from base64..."
@@ -55,7 +60,7 @@ jobs:
         echo "==> Adding certificate to trusted root..."
         security find-certificate -c "Local Development Signing" -p build.keychain > /tmp/cert.pem
         sudo security add-trusted-cert -d -r trustRoot \
-          -k /Library/Keychains/System.keychain /tmp/cert.pem
+          -k ~/Library/Keychains/build.keychain-db /tmp/cert.pem
         echo "==> Certificate added to trusted root"
 
         rm /tmp/cert.p12 /tmp/cert.pem
@@ -90,21 +95,6 @@ jobs:
           echo "==> Listing all certificates in build.keychain:"
           security find-certificate -a build.keychain 2>&1 | grep "labl" || echo "No certificates found"
         fi
-
-    - name: Build and package
-      run: |
-        chmod +x build.sh
-        ./build.sh
-
-    - name: Unlock keychain before signing
-      run: |
-        echo "==> Ensuring keychain is unlocked..."
-        security unlock-keychain -p "" build.keychain && echo "✅ Keychain unlocked"
-        security default-keychain -s build.keychain && echo "✅ Default keychain set"
-        security list-keychains -s build.keychain && echo "✅ Keychain list updated"
-        echo ""
-        echo "==> Verifying keychain state:"
-        security show-keychain-info build.keychain
 
     - name: Sign app
       run: |
