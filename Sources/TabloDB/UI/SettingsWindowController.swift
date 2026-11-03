@@ -8,6 +8,7 @@ class SettingsWindowController: NSWindowController {
     private var tabView: NSTabView!
     private var generalTab: NSView!
     private var aboutTab: NSView!
+    private var themePopup: NSPopUpButton!
     private var languagePopup: NSPopUpButton!
     private var updateCheckPopup: NSPopUpButton!
     private var quitOnCloseCheckbox: NSButton!
@@ -152,6 +153,20 @@ class SettingsWindowController: NSWindowController {
 
     private func createGeneralTab() -> NSView {
         let stack = makeVerticalStack()
+
+        themePopup = NSPopUpButton()
+        for theme in AppTheme.allCases {
+            themePopup.addItem(withTitle: theme.displayName)
+            themePopup.lastItem?.representedObject = theme
+        }
+        let currentTheme = ThemeManager.shared.currentTheme
+        if let index = AppTheme.allCases.firstIndex(of: currentTheme) {
+            themePopup.selectItem(at: index)
+        }
+        themePopup.target = self
+        themePopup.action = #selector(themeChanged(_:))
+        themePopup.widthAnchor.constraint(equalToConstant: controlWidth).isActive = true
+        stack.addArrangedSubview(makeRow(label: L("settings.theme"), control: themePopup))
 
         languagePopup = NSPopUpButton()
         for language in AppLanguage.allCases {
@@ -327,6 +342,11 @@ class SettingsWindowController: NSWindowController {
             }
             return event
         }
+    }
+
+    @objc private func themeChanged(_ sender: NSPopUpButton) {
+        guard let selected = sender.selectedItem?.representedObject as? AppTheme else { return }
+        ThemeManager.shared.currentTheme = selected
     }
 
     @objc private func languageChanged(_ sender: NSPopUpButton) {

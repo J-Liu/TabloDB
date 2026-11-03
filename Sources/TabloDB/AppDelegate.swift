@@ -20,23 +20,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     )
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        LLog("AppDelegate.applicationDidFinishLaunching - START")
-
         configureUpdateCheck()
         menuController = MenuController(appDelegate: self)
 
-        LLog("Creating MainWindowController")
         windowController = MainWindowController()
-
-        LLog("Calling showWindow")
         windowController?.showWindow(nil)
-
-        LLog("Window frame after showWindow: \(windowController?.window?.frame ?? .zero)")
 
         mainWindow = windowController?.window
         menuController?.updateRecentMenu()
-
-        LLog("AppDelegate.applicationDidFinishLaunching - END")
     }
 
     private func configureUpdateCheck() {
@@ -82,17 +73,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     func applicationShouldHandleReopen(_ sender: NSApplication, hasVisibleWindows flag: Bool) -> Bool {
-        LLog("applicationShouldHandleReopen - hasVisibleWindows: \(flag)")
-
         if !flag {
-            // If windowController is nil or window is nil, create new
             if windowController == nil || windowController?.window == nil {
-                LLog("Creating new MainWindowController")
                 windowController = MainWindowController()
             }
             windowController?.showWindow(nil)
             windowController?.window?.makeKeyAndOrderFront(nil)
-            LLog("Window shown - frame: \(windowController?.window?.frame ?? .zero)")
         }
         return true
     }
