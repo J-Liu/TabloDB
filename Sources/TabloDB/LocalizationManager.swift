@@ -107,6 +107,9 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "settings.about.copyright": "Copyright © 2026 Jia Liu",
         "settings.about.description": "A native macOS database GUI supporting multiple data sources.",
         "settings.about.checkUpdates": "Check for Updates",
+        "settings.about.license": "License",
+        "settings.about.notice": "Notice",
+        "settings.about.close": "Close",
 
         // Sidebar
         "sidebar.tables": "Tables",
@@ -260,6 +263,9 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "settings.about.copyright": "版权所有 © 2026 Jia Liu",
         "settings.about.description": "原生 macOS 数据库 GUI，支持多种数据源。",
         "settings.about.checkUpdates": "检查更新",
+        "settings.about.license": "许可证",
+        "settings.about.notice": "声明",
+        "settings.about.close": "关闭",
 
         // Sidebar
         "sidebar.tables": "数据表",
@@ -413,6 +419,9 @@ private let localizedStrings: [AppLanguage: [String: String]] = [
         "settings.about.copyright": "版權所有 © 2026 Jia Liu",
         "settings.about.description": "原生 macOS 資料庫 GUI，支援多種資料來源。",
         "settings.about.checkUpdates": "檢查更新",
+        "settings.about.license": "許可證",
+        "settings.about.notice": "聲明",
+        "settings.about.close": "關閉",
 
         // Sidebar
         "sidebar.tables": "資料表",

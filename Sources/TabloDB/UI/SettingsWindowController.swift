@@ -304,6 +304,16 @@ class SettingsWindowController: NSWindowController {
         aboutCheckUpdatesButton.translatesAutoresizingMaskIntoConstraints = false
         container.addSubview(aboutCheckUpdatesButton)
 
+        let licenseButton = NSButton(title: L("settings.about.license"), target: self, action: #selector(showLicense))
+        licenseButton.bezelStyle = .rounded
+        licenseButton.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(licenseButton)
+
+        let noticeButton = NSButton(title: L("settings.about.notice"), target: self, action: #selector(showNotice))
+        noticeButton.bezelStyle = .rounded
+        noticeButton.translatesAutoresizingMaskIntoConstraints = false
+        container.addSubview(noticeButton)
+
         NSLayoutConstraint.activate([
             appIcon.topAnchor.constraint(equalTo: container.topAnchor, constant: 40),
             appIcon.centerXAnchor.constraint(equalTo: container.centerXAnchor),
@@ -327,7 +337,13 @@ class SettingsWindowController: NSWindowController {
 
             aboutCheckUpdatesButton.topAnchor.constraint(equalTo: githubButton.bottomAnchor, constant: 12),
             aboutCheckUpdatesButton.centerXAnchor.constraint(equalTo: container.centerXAnchor),
-            aboutCheckUpdatesButton.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor, constant: -20)
+
+            licenseButton.topAnchor.constraint(equalTo: aboutCheckUpdatesButton.bottomAnchor, constant: 8),
+            licenseButton.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+
+            noticeButton.topAnchor.constraint(equalTo: licenseButton.bottomAnchor, constant: 8),
+            noticeButton.centerXAnchor.constraint(equalTo: container.centerXAnchor),
+            noticeButton.bottomAnchor.constraint(lessThanOrEqualTo: container.bottomAnchor, constant: -20)
         ])
 
         return container
@@ -387,5 +403,53 @@ class SettingsWindowController: NSWindowController {
         if let url = URL(string: "https://github.com/J-Liu/TabloDB") {
             NSWorkspace.shared.open(url)
         }
+    }
+
+    @objc private func showLicense() {
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 600, height: 500),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        window.title = L("settings.about.license")
+        window.center()
+
+        let scrollView = NSScrollView()
+        scrollView.hasVerticalScroller = true
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+
+        let textView = NSTextView()
+        textView.isEditable = false
+        textView.isSelectable = true
+        textView.font = .monospacedSystemFont(ofSize: 12, weight: .regular)
+
+        if let licensePath = Bundle.main.path(forResource: "LICENSE", ofType: nil),
+           let licenseContent = try? String(contentsOfFile: licensePath) {
+            textView.string = licenseContent
+        } else {
+            textView.string = "GNU AFFERO GENERAL PUBLIC LICENSE\nVersion 3, 19 November 2007\n\nCopyright (C) 2007 Free Software Foundation, Inc."
+        }
+
+        scrollView.documentView = textView
+
+        window.contentView = scrollView
+        window.makeKeyAndOrderFront(nil)
+    }
+
+    @objc private func showNotice() {
+        let alert = NSAlert()
+        alert.messageText = L("settings.about.notice")
+        alert.informativeText = """
+TabloDB - A native macOS database GUI
+Copyright 2026 Jia Liu
+
+This product includes software developed by Jia Liu.
+
+The original TabloDB project and its contributors must be credited in any redistribution or derivative work. This attribution notice must be retained in all copies or substantial portions of the software.
+"""
+        alert.alertStyle = .informational
+        alert.addButton(withTitle: L("settings.about.close"))
+        alert.runModal()
     }
 }
