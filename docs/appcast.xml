@@ -6,6 +6,19 @@
     <language>en</language>
 
     <item>
+    <title>Version 0.1.3</title>
+    <pubDate>Wed, 04 Nov 2026 11:28:12 +0000</pubDate>
+    <sparkle:version>4</sparkle:version>
+    <sparkle:shortVersionString>0.1.3</sparkle:shortVersionString>
+    <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>
+    <enclosure
+        url="https://github.com/J-Liu/TabloDB/releases/download/v0.1.3/TabloDB-0.1.3.zip"
+        sparkle:edSignature="dXcK21fTieWKma0iCPBv6eWBsDx9zYZZNK0PIKDmNG/M3IWZegNeTkv4W8ABmJ3B62e8DtHr5kyu+c1K+QcEBg=="
+        length="15470284"
+        type="application/octet-stream"/>
+</item>
+
+    <item>
     <title>Version 0.1.2</title>
     <pubDate>Tue, 03 Nov 2026 13:48:36 +0000</pubDate>
     <sparkle:version>3</sparkle:version>
